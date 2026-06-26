@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<title>מערכת סידור עבודה</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh;direction:rtl;}
+#loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.93);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;}
+.spinner{width:44px;height:44px;border:4px solid #eee;border-top-color:#1a1a2e;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:14px;color:#666;font-weight:600;}
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:1rem;}
+.login-card{background:white;border-radius:20px;padding:2.5rem 2rem;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.login-logo{text-align:center;margin-bottom:2rem;}
+.login-logo .icon{width:64px;height:64px;background:#1a1a2e;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;}
+.login-logo .icon svg{width:32px;height:32px;fill:white;}
+.login-logo h1{font-size:22px;font-weight:700;}
+.login-logo p{font-size:13px;color:#888;margin-top:4px;}
+.fg{margin-bottom:1.1rem;}
+.fg label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px;}
+.fg select,.fg input{width:100%;padding:12px 14px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:14px;outline:none;background:white;direction:rtl;-webkit-appearance:none;}
+.fg select:focus,.fg input:focus{border-color:#1a1a2e;}
+.btn-login{width:100%;padding:14px;background:#1a1a2e;color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;}
+.error-msg{color:#e53e3e;font-size:12px;text-align:center;margin-top:7px;min-height:18px;}
+/* HEADER */
+#app{display:none;min-height:100vh;}
+.hdr{background:#1a1a2e;color:white;padding:0 1rem;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.hdr-left{display:flex;align-items:center;gap:.6rem;}
+.hdr-title{font-size:15px;font-weight:700;}
+.hdr-role{font-size:11px;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:10px;}
+.hdr-user{font-size:11px;color:#aaa;}
+.btn-logout{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:white;padding:6px 13px;border-radius:7px;cursor:pointer;font-size:12px;}
+/* TABS */
+.tabs{display:flex;gap:6px;padding:1rem 1rem .5rem;overflow-x:auto;}
+.tab{padding:8px 16px;border-radius:8px;border:1.5px solid #e0e0e0;background:white;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.tab.active{background:#1a1a2e;color:white;border-color:#1a1a2e;}
+.view{display:none;padding:1rem;max-width:1100px;margin:0 auto;}
+.view.active{display:block;}
+/* CARDS */
+.card{background:white;border-radius:12px;padding:1.2rem;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:1rem;}
+.card h3{font-size:14px;font-weight:700;margin-bottom:.8rem;display:flex;align-items:center;justify-content:space-between;}
+/* WEEK NAV */
+.week-nav{display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;background:white;padding:.8rem 1.2rem;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);flex-wrap:wrap;}
+.week-nav button{background:#f0f2f5;border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;}
+.week-nav button:hover{background:#e0e4ea;}
+.week-title{font-size:14px;font-weight:700;flex:1;text-align:center;}
+.deadline-badge{font-size:11px;background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-weight:600;}
+.deadline-badge.ok{background:#dcfce7;color:#166534;}
+/* BLOCKS GRID */
+.blocks-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:1rem;}
+.day-col{display:flex;flex-direction:column;gap:3px;}
+.day-hdr{text-align:center;font-size:11px;font-weight:700;color:#666;padding:5px 2px;background:#f8f9fa;border-radius:6px;}
+.day-hdr.weekend{background:#eef2ff;color:#3182ce;}
+.shift-cell{border-radius:6px;padding:4px;text-align:center;font-size:10px;font-weight:600;cursor:pointer;transition:all .15s;user-select:none;min-height:32px;display:flex;align-items:center;justify-content:center;}
+.shift-cell.morning{background:#fef9c3;color:#713f12;}
+.shift-cell.evening{background:#e0f2fe;color:#0369a1;}
+.shift-cell.night{background:#ede9fe;color:#5b21b6;}
+.shift-cell.blocked{background:#fee2e2;color:#991b1b;position:relative;}
+.shift-cell.blocked::after{content:'✕';font-size:12px;}
+.shift-cell:hover{filter:brightness(.92);}
+/* SCHEDULE GRID */
+.schedule-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.sched-day{background:#f8f9fa;border-radius:10px;padding:.5rem;}
+.sched-day-hdr{text-align:center;font-size:12px;font-weight:700;color:#1a1a2e;margin-bottom:.4rem;padding-bottom:.3rem;border-bottom:1px solid #eee;}
+.sched-day-hdr.weekend{color:#3182ce;}
+.shift-block{border-radius:7px;padding:.4rem .5rem;margin-bottom:.3rem;}
+.shift-block.morning{background:#fef9c3;border-right:3px solid #d97706;}
+.shift-block.evening{background:#e0f2fe;border-right:3px solid #0284c7;}
+.shift-block.night{background:#ede9fe;border-right:3px solid #7c3aed;}
+.shift-label{font-size:10px;font-weight:700;color:#555;margin-bottom:3px;}
+.shift-emp{font-size:11px;color:#1a1a2e;padding:2px 5px;background:rgba(255,255,255,.7);border-radius:4px;margin-bottom:2px;display:flex;align-items:center;justify-content:space-between;}
+.shift-emp .remove-btn{background:none;border:none;color:#e53e3e;cursor:pointer;font-size:13px;padding:0;line-height:1;}
+.add-emp-btn{font-size:10px;color:#3182ce;background:#e0f2fe;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;width:100%;text-align:center;margin-top:2px;}
+/* TASKS */
+.task-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid #eee;border-radius:9px;margin-bottom:6px;background:#fafafa;flex-wrap:wrap;}
+.task-name{flex:1;font-size:13px;font-weight:600;}
+.task-emps{display:flex;flex-wrap:wrap;gap:4px;flex:1;}
+.task-emp-badge{background:#eef2ff;color:#1a1a2e;font-size:11px;padding:2px 8px;border-radius:10px;display:flex;align-items:center;gap:4px;}
+.task-emp-badge button{background:none;border:none;color:#e53e3e;cursor:pointer;font-size:12px;padding:0;}
+.btn-add-task-emp{background:#f0fff4;color:#166534;border:1.5px dashed #38a169;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;}
+/* BLOCKS SUMMARY */
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;}
+@media(min-width:600px){.summary-grid{grid-template-columns:repeat(4,1fr);}}
+.summary-emp-card{background:#f8f9fa;border-radius:9px;padding:.7rem;border:1.5px solid #eee;}
+.summary-emp-name{font-size:12px;font-weight:700;margin-bottom:.4rem;}
+.summary-blocks{display:flex;flex-wrap:wrap;gap:3px;}
+.block-chip{font-size:10px;padding:2px 6px;border-radius:5px;background:#fee2e2;color:#991b1b;font-weight:600;}
+.block-chip.note{background:#fef9c3;color:#713f12;}
+/* SETTINGS */
+.emp-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;padding:8px 11px;border:1.5px solid #eee;border-radius:9px;background:#fafafa;flex-wrap:wrap;}
+.emp-num{width:24px;height:24px;background:#1a1a2e;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+input.emp-name-in{flex:2;min-width:80px;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;direction:rtl;}
+input.emp-pin-in{width:80px;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;direction:ltr;text-align:center;letter-spacing:2px;}
+.lbl-tiny{font-size:10px;color:#999;}
+.btn-del{background:#fee2e2;color:#991b1b;border:none;width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:14px;}
+.btn-add{background:#f0fff4;color:#166534;border:1.5px dashed #38a169;border-radius:9px;padding:8px;width:100%;cursor:pointer;font-size:13px;font-weight:700;margin-top:.4rem;}
+.btn-primary{background:#1a1a2e;color:white;border:none;padding:10px 24px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;margin-top:.8rem;}
+.save-msg{color:#38a169;font-size:12px;margin-top:6px;opacity:0;transition:opacity .3s;min-height:14px;}
+.save-msg.show{opacity:1;}
+.pin-group{display:flex;flex-direction:column;gap:.7rem;max-width:280px;}
+.pin-group label{font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:2px;}
+.pin-field{padding:10px 13px;border:1.5px solid #e0e0e0;border-radius:9px;font-size:14px;outline:none;direction:ltr;letter-spacing:3px;text-align:center;width:100%;}
+.pin-field:focus{border-color:#1a1a2e;}
+.pin-err{color:#e53e3e;font-size:12px;min-height:14px;}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:1rem;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:white;border-radius:14px;padding:1.4rem;width:100%;max-width:400px;direction:rtl;}
+.modal-box h3{font-size:15px;font-weight:700;margin-bottom:1rem;}
+.modal-close{float:left;background:#eee;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:14px;line-height:26px;text-align:center;}
+/* MISC */
+.warning-box{background:#fffbeb;border:1px solid #f6d860;border-radius:9px;padding:.7rem 1rem;margin-bottom:.9rem;font-size:12px;color:#7d5d00;}
+.published-banner{background:#dcfce7;border:1px solid #86efac;border-radius:9px;padding:.7rem 1rem;margin-bottom:.9rem;font-size:13px;color:#166534;font-weight:600;text-align:center;}
+select.inline-sel{padding:5px 9px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:12px;outline:none;background:white;-webkit-appearance:none;}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem;}
+.stat-mini{background:#f8f9fa;border-radius:8px;padding:.6rem .8rem;text-align:center;}
+.stat-mini .v{font-size:20px;font-weight:800;color:#1a1a2e;}
+.stat-mini .l{font-size:10px;color:#888;font-weight:700;}
+@media(max-width:600px){
+  .blocks-grid{grid-template-columns:repeat(7,1fr);}
+  .schedule-grid{grid-template-columns:1fr 1fr;}
+  .summary-grid{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+<div id="loading-overlay"><div class="spinner"></div><div class="loading-text">מתחבר...</div></div>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon"><svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg></div>
+      <h1>מערכת סידור עבודה</h1>
+      <p>הכנס פרטים לכניסה</p>
+    </div>
+    <div class="fg"><label>בחר עובד</label><select id="login-user"><option value="">-- בחר --</option></select></div>
+    <div class="fg"><label>קוד כניסה (4 ספרות)</label><input type="password" id="login-pin" maxlength="4" placeholder="הכנס קוד" inputmode="numeric"></div>
+    <button class="btn-login" onclick="doLogin()">כניסה</button>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="hdr-title">סידור עבודה</div>
+      <span class="hdr-role" id="hdr-role"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:.4rem;">
+      <span class="hdr-user" id="hdr-user"></span>
+      <button class="btn-logout" onclick="doLogout()">יציאה</button>
+    </div>
+  </div>
+
+  <!-- EMPLOYEE TABS -->
+  <div id="emp-tabs" class="tabs" style="display:none;">
+    <button class="tab active" onclick="showEmpTab('blocks')">חסימות</button>
+    <button class="tab" onclick="showEmpTab('schedule')">סידור שלי</button>
+  </div>
+
+  <!-- MANAGER TABS -->
+  <div id="mgr-tabs" class="tabs" style="display:none;">
+    <button class="tab active" onclick="showMgrTab('schedule')">סידור</button>
+    <button class="tab" onclick="showMgrTab('blocks')">חסימות עובדים</button>
+    <button class="tab" onclick="showMgrTab('tasks')">משימות</button>
+    <button class="tab" onclick="showMgrTab('settings')">הגדרות</button>
+  </div>
+
+  <!-- EMP: BLOCKS VIEW -->
+  <div id="view-emp-blocks" class="view active">
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">◀ שבוע קודם</button>
+      <div class="week-title" id="emp-week-title"></div>
+      <button onclick="changeWeek(1)">שבוע הבא ▶</button>
+      <span class="deadline-badge" id="emp-deadline-badge" style="display:none;"></span>
+    </div>
+    <div class="card">
+      <h3>
+        <span>חסם משמרות — לחץ על משמרת לחסום/לשחרר</span>
+        <span id="blocks-count-badge" style="font-size:11px;background:#eef2ff;color:#1a1a2e;padding:3px 10px;border-radius:20px;"></span>
+      </h3>
+      <div style="display:flex;gap:1rem;font-size:11px;margin-bottom:.8rem;flex-wrap:wrap;">
+        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#fef9c3;"></span>בוקר</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#e0f2fe;"></span>ערב</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#ede9fe;"></span>לילה</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#fee2e2;"></span>חסום</span>
+      </div>
+      <div class="blocks-grid" id="emp-blocks-grid"></div>
+      <div class="fg" style="margin-top:.8rem;">
+        <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:4px;display:block;">הערה לשבוע זה (אופציונלי)</label>
+        <textarea id="emp-week-note" rows="2" style="width:100%;padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;resize:vertical;direction:rtl;font-family:inherit;" placeholder="הערות, בקשות מיוחדות..."></textarea>
+      </div>
+      <button class="btn-primary" onclick="saveBlocks()" style="width:100%;max-width:220px;display:block;margin:.8rem auto 0;">שמור חסימות</button>
+      <div class="save-msg" id="blocks-save-msg" style="text-align:center;margin-top:5px;">נשמר!</div>
+    </div>
+  </div>
+
+  <!-- EMP: SCHEDULE VIEW -->
+  <div id="view-emp-schedule" class="view">
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">◀ שבוע קודם</button>
+      <div class="week-title" id="emp-sched-week-title"></div>
+      <button onclick="changeWeek(1)">שבוע הבא ▶</button>
+    </div>
+    <div id="emp-schedule-content"></div>
+  </div>
+
+  <!-- MGR: SCHEDULE VIEW -->
+  <div id="view-mgr-schedule" class="view active">
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">◀ שבוע קודם</button>
+      <div class="week-title" id="mgr-week-title"></div>
+      <button onclick="changeWeek(1)">שבוע הבא ▶</button>
+      <button onclick="autoAssign()" style="background:#eef2ff;color:#1a1a2e;border:1.5px solid #3182ce;">⚡ שיבוץ אוטומטי</button>
+      <button onclick="publishSchedule()" style="background:#dcfce7;color:#166534;border:1.5px solid #38a169;">✔ פרסם סידור</button>
+    </div>
+    <div id="mgr-publish-banner" style="display:none;" class="published-banner">✔ הסידור פורסם לעובדים</div>
+    <div id="mgr-schedule-grid" class="schedule-grid"></div>
+  </div>
+
+  <!-- MGR: BLOCKS SUMMARY -->
+  <div id="view-mgr-blocks" class="view">
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">◀ שבוע קודם</button>
+      <div class="week-title" id="mgr-blocks-week-title"></div>
+      <button onclick="changeWeek(1)">שבוע הבא ▶</button>
+    </div>
+    <div class="card">
+      <h3>הגדרת דד-ליין לחסימות</h3>
+      <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;">
+        <label style="font-size:13px;font-weight:600;">דד-ליין לשבוע זה:</label>
+        <input type="datetime-local" id="deadline-input" style="padding:8px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;">
+        <label style="font-size:13px;font-weight:600;">מקס חסימות בשבוע:</label>
+        <input type="number" id="max-blocks-input" min="1" max="21" value="3" style="width:70px;padding:8px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;text-align:center;">
+        <button class="btn-primary" onclick="saveDeadline()" style="margin-top:0;">שמור</button>
+        <div class="save-msg" id="deadline-save-msg">נשמר!</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>חסימות עובדים לשבוע</h3>
+      <div class="stat-row">
+        <div class="stat-mini"><div class="v" id="stat-total-emps">0</div><div class="l">עובדים</div></div>
+        <div class="stat-mini"><div class="v" id="stat-submitted">0</div><div class="l">הגישו חסימות</div></div>
+        <div class="stat-mini"><div class="v" id="stat-pending">0</div><div class="l">טרם הגישו</div></div>
+      </div>
+      <div id="blocks-summary-grid" class="summary-grid"></div>
+    </div>
+    <div class="card">
+      <h3>סקירה גרפית — חסימות לפי משמרת</h3>
+      <div class="blocks-grid" id="mgr-overview-grid"></div>
+    </div>
+  </div>
+
+  <!-- MGR: TASKS -->
+  <div id="view-mgr-tasks" class="view">
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">◀ שבוע קודם</button>
+      <div class="week-title" id="mgr-tasks-week-title"></div>
+      <button onclick="changeWeek(1)">שבוע הבא ▶</button>
+    </div>
+    <div class="card">
+      <h3>משימות שבועיות <button onclick="openAddTaskModal()" style="font-size:12px;background:#eef2ff;color:#3182ce;border:1.5px solid #3182ce;border-radius:7px;padding:4px 12px;cursor:pointer;font-weight:700;">+ הוסף משימה</button></h3>
+      <div id="tasks-list"></div>
+    </div>
+  </div>
+
+  <!-- MGR: SETTINGS -->
+  <div id="view-mgr-settings" class="view">
+    <div class="card">
+      <h3>ניהול עובדים</h3>
+      <div id="settings-emp-list"></div>
+      <button class="btn-add" onclick="addEmpRow()">+ הוסף עובד</button>
+      <button class="btn-primary" onclick="saveEmployees()">שמור שינויים</button>
+      <div class="save-msg" id="emp-save-msg">נשמר!</div>
+    </div>
+    <div class="card" style="max-width:320px;">
+      <h3>שינוי סיסמת מנהל</h3>
+      <div class="pin-group" style="margin-top:.6rem;">
+        <div><label>קוד נוכחי</label><input type="password" class="pin-field" id="mgr-cur" maxlength="4" placeholder="····" inputmode="numeric"></div>
+        <div><label>קוד חדש</label><input type="password" class="pin-field" id="mgr-new" maxlength="4" placeholder="····" inputmode="numeric"></div>
+        <div><label>אשר</label><input type="password" class="pin-field" id="mgr-new2" maxlength="4" placeholder="····" inputmode="numeric"></div>
+        <button class="btn-primary" onclick="saveMgrPin()">שנה קוד</button>
+        <div class="pin-err" id="mgr-pin-err"></div>
+        <div class="save-msg" id="mgr-pin-msg">הקוד עודכן!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="add-emp-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('add-emp-modal')">✕</button>
+    <h3>הוסף עובד למשמרת</h3>
+    <div class="fg"><label>בחר עובד</label><select id="modal-emp-sel" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;-webkit-appearance:none;"></select></div>
+    <button class="btn-primary" onclick="confirmAddEmpToShift()" style="width:100%;">הוסף</button>
+  </div>
+</div>
+<div class="modal-overlay" id="add-task-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('add-task-modal')">✕</button>
+    <h3>הוסף משימה שבועית</h3>
+    <div class="fg"><label>שם המשימה</label><input type="text" id="task-name-input" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;direction:rtl;" placeholder="לדוגמה: ניקיון מחסן"></div>
+    <button class="btn-primary" onclick="confirmAddTask()" style="width:100%;">הוסף</button>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey:            "AIzaSyDyTN8H7FwyhA9wjsEH97fwJB2TGJgEfpA",
+  authDomain:        "work-system-73906.firebaseapp.com",
+  databaseURL:       "https://work-system-73906-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:         "work-system-73906",
+  storageBucket:     "work-system-73906.firebasestorage.app",
+  messagingSenderId: "227399680422",
+  appId:             "1:227399680422:web:4911726e11a17572b40f67"
+};
+
+const DEFAULT_EMPLOYEES = Array.from({length:10},(_,i)=>({id:'emp'+(i+1),name:'עובד '+(i+1),pin:(''+(i+1)).padStart(4,'0')}));
+const DEFAULT_MGR = {pin:'9999'};
+const SHIFTS = ['morning','evening','night'];
+const SHIFT_NAMES = {morning:'בוקר',evening:'ערב',night:'לילה'};
+const DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+
+let app=null,db=null;
+try{app=firebase.initializeApp(firebaseConfig);db=firebase.database();}catch(e){}
+
+let currentUser=null,currentRole=null;
+let currentWeekStart=null;
+let _pendingShift=null;
+let _workingEmps=[];
+
+async function fbGet(p){const s=await db.ref(p).once('value');return s.exists()?s.val():null;}
+async function fbSet(p,v){await db.ref(p).set(v);}
+function showLoading(v){document.getElementById('loading-overlay').style.display=v?'flex':'none';}
+function showSaveMsg(id){const m=document.getElementById(id);if(m){m.classList.add('show');setTimeout(()=>m.classList.remove('show'),2500);}}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function weekKey(d){return 'w'+d.toISOString().slice(0,10);}
+function getMonday(d){const dt=new Date(d);const day=dt.getDay();const diff=day===0?1:day===6?2:-(day-1);dt.setDate(dt.getDate()+diff-(day===0?6:day-1));return new Date(dt.setHours(0,0,0,0));}
+
+function getSunday(d){
+  const dt=new Date(d);
+  const day=dt.getDay();
+  dt.setDate(dt.getDate()-day);
+  return new Date(dt.setHours(0,0,0,0));
+}
+
+function weekDates(sun){
+  return Array.from({length:7},(_,i)=>{const d=new Date(sun);d.setDate(d.getDate()+i);return d;});
+}
+function fmtDate(d){return d.getDate()+'/'+(d.getMonth()+1);}
+function fmtWeek(sun){const end=new Date(sun);end.setDate(end.getDate()+6);return fmtDate(sun)+' — '+fmtDate(end);}
+function shiftClass(s){return s==='morning'?'morning':s==='evening'?'evening':'night';}
+
+var _started=false;
+var _bootT=setInterval(function(){
+  if(_started||!db||!document.getElementById('login-screen'))return;
+  _started=true;clearInterval(_bootT);
+  db.ref('sched/config').once('value').then(function(snap){
+    var cfg=snap.val()||{};
+    var p=Promise.resolve();
+    if(!cfg.employees) p=p.then(function(){return db.ref('sched/config/employees').set(DEFAULT_EMPLOYEES);});
+    if(!cfg.manager)   p=p.then(function(){return db.ref('sched/config/manager').set(DEFAULT_MGR);});
+    return p;
+  }).then(function(){
+    return db.ref('sched/config/employees').once('value');
+  }).then(function(snap){
+    const emps=snap.val()||DEFAULT_EMPLOYEES;
+    buildLoginSelect(emps);
+    showLoading(false);
+    document.getElementById('login-screen').style.display='flex';
+  }).catch(function(e){console.error(e);showLoading(false);});
+},200);
+
+function buildLoginSelect(emps){
+  const sel=document.getElementById('login-user');
+  sel.innerHTML='<option value="">-- בחר --</option>';
+  emps.forEach(e=>{const o=document.createElement('option');o.value=e.id;o.textContent=e.name;sel.appendChild(o);});
+  const m=document.createElement('option');m.value='manager';m.textContent='מנהל';sel.appendChild(m);
+}
+document.getElementById('login-pin').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+window.doLogin=async function(){
+  const uid=document.getElementById('login-user').value;
+  const pin=document.getElementById('login-pin').value.trim();
+  const err=document.getElementById('login-error');err.textContent='';
+  if(!uid){err.textContent='יש לבחור משתמש';return;}
+  if(!pin){err.textContent='יש להזין קוד';return;}
+  showLoading(true);
+  if(uid==='manager'){
+    const mgr=await fbGet('sched/config/manager')||DEFAULT_MGR;
+    if(pin!==mgr.pin){err.textContent='קוד שגוי';showLoading(false);return;}
+    currentUser={id:'manager',name:'מנהל'};currentRole='manager';
+    await enterManager();
+  } else {
+    const emps=await fbGet('sched/config/employees')||DEFAULT_EMPLOYEES;
+    const emp=emps.find(e=>e.id===uid);
+    if(!emp||pin!==emp.pin){err.textContent='קוד שגוי';showLoading(false);return;}
+    currentUser=emp;currentRole='employee';
+    await enterEmployee();
+  }
+  showLoading(false);
+};
+
+window.doLogout=function(){
+  currentUser=null;currentRole=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-pin').value='';
+  document.getElementById('login-error').textContent='';
+};
+
+async function enterEmployee(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('emp-tabs').style.display='flex';
+  document.getElementById('mgr-tabs').style.display='none';
+  document.getElementById('hdr-role').textContent='עובד';
+  document.getElementById('hdr-user').textContent=currentUser.name;
+  currentWeekStart=getSunday(new Date());
+  showEmpTab('blocks');
+}
+
+async function enterManager(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('emp-tabs').style.display='none';
+  document.getElementById('mgr-tabs').style.display='flex';
+  document.getElementById('hdr-role').textContent='מנהל';
+  document.getElementById('hdr-user').textContent='מנהל';
+  currentWeekStart=getSunday(new Date());
+  showMgrTab('schedule');
+}
+
+function changeWeek(dir){
+  const d=new Date(currentWeekStart);
+  d.setDate(d.getDate()+dir*7);
+  currentWeekStart=d;
+  if(currentRole==='employee'){
+    if(document.getElementById('view-emp-blocks').classList.contains('active'))renderEmpBlocks();
+    else renderEmpSchedule();
+  } else {
+    const activeTab=document.querySelector('#mgr-tabs .tab.active');
+    if(activeTab){
+      const t=activeTab.getAttribute('onclick').match(/'(\w+)'/);
+      if(t)showMgrTab(t[1]);
+    }
+  }
+}
+
+// ===== EMPLOYEE BLOCKS =====
+window.showEmpTab=function(tab){
+  document.querySelectorAll('#emp-tabs .tab').forEach((t,i)=>t.classList.toggle('active',['blocks','schedule'][i]===tab));
+  document.getElementById('view-emp-blocks').classList.toggle('active',tab==='blocks');
+  document.getElementById('view-emp-schedule').classList.toggle('active',tab==='schedule');
+  if(tab==='blocks')renderEmpBlocks();
+  else renderEmpSchedule();
+};
+
+async function renderEmpBlocks(){
+  const wk=weekKey(currentWeekStart);
+  const dates=weekDates(currentWeekStart);
+  document.getElementById('emp-week-title').textContent=fmtWeek(currentWeekStart);
+
+  // deadline
+  const dlData=await fbGet('sched/weeks/'+wk+'/deadline')||{};
+  const maxBlocks=dlData.maxBlocks||3;
+  const dlTime=dlData.time;
+  const now=new Date();
+  const past=dlTime&&new Date(dlTime)<now;
+  const badge=document.getElementById('emp-deadline-badge');
+  if(dlTime){
+    badge.style.display='';
+    const dlDate=new Date(dlTime);
+    badge.textContent='דד-ליין: '+dlDate.toLocaleDateString('he-IL')+' '+dlDate.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+    badge.className='deadline-badge '+(past?'':'ok');
+  } else badge.style.display='none';
+
+  // my blocks
+  const myBlocks=await fbGet('sched/weeks/'+wk+'/blocks/'+currentUser.id)||{};
+  const myNote=await fbGet('sched/weeks/'+wk+'/notes/'+currentUser.id)||'';
+  document.getElementById('emp-week-note').value=myNote;
+
+  // count
+  let blockCount=0;
+  Object.values(myBlocks).forEach(d=>{if(typeof d==='object')Object.values(d).forEach(v=>{if(v)blockCount++;});});
+  document.getElementById('blocks-count-badge').textContent=blockCount+' / '+maxBlocks+' חסימות';
+
+  // grid
+  const grid=document.getElementById('emp-blocks-grid');grid.innerHTML='';
+  DAYS.forEach((dayName,di)=>{
+    const col=document.createElement('div');col.className='day-col';
+    const hdr=document.createElement('div');hdr.className='day-hdr'+(di>=5?' weekend':'');
+    hdr.textContent=dayName+' '+fmtDate(dates[di]);
+    col.appendChild(hdr);
+    SHIFTS.forEach(shift=>{
+      const cell=document.createElement('div');
+      const isBlocked=myBlocks['d'+di]&&myBlocks['d'+di][shift];
+      cell.className='shift-cell '+(isBlocked?'blocked':shiftClass(shift));
+      cell.textContent=isBlocked?'':SHIFT_NAMES[shift];
+      cell.onclick=()=>{
+        if(past){alert('עבר הדד-ליין לחסימות');return;}
+        if(!isBlocked&&blockCount>=maxBlocks){alert('הגעת למקסימום חסימות ('+maxBlocks+') לשבוע זה');return;}
+        toggleBlock(wk,di,shift,!isBlocked,maxBlocks);
+      };
+      col.appendChild(cell);
+    });
+    grid.appendChild(col);
+  });
+}
+
+async function toggleBlock(wk,di,shift,val,maxBlocks){
+  showLoading(true);
+  await db.ref('sched/weeks/'+wk+'/blocks/'+currentUser.id+'/d'+di+'/'+shift).set(val);
+  showLoading(false);
+  renderEmpBlocks();
+}
+
+window.saveBlocks=async function(){
+  const wk=weekKey(currentWeekStart);
+  const note=document.getElementById('emp-week-note').value.trim();
+  await fbSet('sched/weeks/'+wk+'/notes/'+currentUser.id,note);
+  showSaveMsg('blocks-save-msg');
+};
+
+// ===== EMPLOYEE SCHEDULE =====
+async function renderEmpSchedule(){
+  const wk=weekKey(currentWeekStart);
+  document.getElementById('emp-sched-week-title').textContent=fmtWeek(currentWeekStart);
+  const published=await fbGet('sched/weeks/'+wk+'/published');
+  const sched=await fbGet('sched/weeks/'+wk+'/schedule')||{};
+  const tasks=await fbGet('sched/weeks/'+wk+'/tasks')||{};
+  const emps=await fbGet('sched/config/employees')||DEFAULT_EMPLOYEES;
+  const container=document.getElementById('emp-schedule-content');
+  if(!published){
+    container.innerHTML='<div class="card" style="text-align:center;color:#888;padding:2rem;">הסידור לשבוע זה טרם פורסם על ידי המנהל</div>';return;
+  }
+  const dates=weekDates(currentWeekStart);
+  let html='<div class="schedule-grid">';
+  dates.forEach((date,di)=>{
+    html+='<div class="sched-day"><div class="sched-day-hdr'+(di>=5?' weekend':'')+'">'+DAYS[di]+'<br><small>'+fmtDate(date)+'</small></div>';
+    SHIFTS.forEach(shift=>{
+      const assigned=(sched['d'+di]&&sched['d'+di][shift])||[];
+      const myShift=assigned.includes(currentUser.id);
+      if(myShift){
+        const empName=currentUser.name;
+        html+='<div class="shift-block '+shift+'"><div class="shift-label">'+SHIFT_NAMES[shift]+'</div>';
+        html+='<div style="font-size:12px;font-weight:600;">✔ אתה משובץ</div></div>';
+      }
+    });
+    // tasks for this day
+    const dayTasks=Object.values(tasks).filter(t=>t.day==di&&t.emps&&t.emps.includes(currentUser.id));
+    dayTasks.forEach(t=>{
+      html+='<div style="background:#fef9c3;border-right:3px solid #d97706;border-radius:6px;padding:.3rem .5rem;margin-bottom:.3rem;font-size:11px;font-weight:600;">📋 '+t.name+'</div>';
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  container.innerHTML=html;
+}
+
+// ===== MANAGER SCHEDULE =====
+window.showMgrTab=function(tab){
+  document.querySelectorAll('#mgr-tabs .tab').forEach((t,i)=>t.classList.toggle('active',['schedule','blocks','tasks','settings'][i]===tab));
+  ['schedule','blocks','tasks','settings'].forEach(v=>{
+    document.getElementById('view-mgr-'+v).classList.toggle('active',v===tab);
+  });
+  if(tab==='schedule')renderMgrSchedule();
+  else if(tab==='blocks')renderMgrBlocks();
+  else if(tab==='tasks')renderMgrTasks();
+  else if(tab==='settings')renderMgrSettings();
+};
+
+async function renderMgrSchedule(){
+  const wk=weekKey(currentWeekStart);
+  document.getElementById('mgr-week-title').textContent=fmtWeek(currentWeekStart);
+  const published=await fbGet('sched/weeks/'+wk+'/published');
+  document.getElementById('mgr-publish-banner').style.display=published?'block':'none';
+  const sched=await fbGet('sched/weeks/'+wk+'/schedule')||{};
+  const emps=await fbGet('sched/config/employees')||DEFAULT_EMPLOYEES;
+  const blocks=await fbGet('sched/weeks/'+wk+'/blocks')||{};
+  const dates=weekDates(currentWeekStart);
+  const grid=document.getElementById('mgr-schedule-grid');grid.innerHTML='';
+  dates.forEach((date,di)=>{
+    const col=document.createElement('div');col.className='sched-day';
+    col.innerHTML='<div class="sched-day-hdr'+(di>=5?' weekend':'')+'">'+DAYS[di]+'<br><small>'+fmtDate(date)+'</small></div>';
+    SHIFTS.forEach(shift=>{
+      const assigned=(sched['d'+di]&&sched['d'+di][shift])||[];
+      const sb=document.createElement('div');sb.className='shift-block '+shift;
+      sb.innerHTML='<div class="shift-label">'+SHIFT_NAMES[shift]+'</div>';
+      assigned.forEach(empId=>{
+        const emp=emps.find(e=>e.id===empId);if(!emp)return;
+        const isBlocked=blocks[empId]&&blocks[empId]['d'+di]&&blocks[empId]['d'+di][shift];
+        const row=document.createElement('div');row.className='shift-emp';
+        row.innerHTML='<span style="color:'+(isBlocked?'#e53e3e':'#1a1a2e')+';">'+(isBlocked?'⚠ ':'')+emp.name+'</span>'+
+          '<button class="remove-btn" onclick="removeEmpFromShift(\''+wk+'\','+di+',\''+shift+'\',\''+empId+'\')">×</button>';
+        sb.appendChild(row);
+      });
+      const addBtn=document.createElement('button');addBtn.className='add-emp-btn';
+      addBtn.textContent='+ הוסף עובד';
+      addBtn.onclick=()=>openAddEmpModal(wk,di,shift,assigned,emps,blocks);
+      sb.appendChild(addBtn);
+      col.appendChild(sb);
+    });
+    grid.appendChild(col);
+  });
+}
+
+function openAddEmpModal(wk,di,shift,assigned,emps,blocks){
+  _pendingShift={wk,di,shift,assigned};
+  const sel=document.getElementById('modal-emp-sel');sel.innerHTML='';
+  emps.filter(e=>!assigned.includes(e.id)).forEach(e=>{
+    const isBlocked=blocks[e.id]&&blocks[e.id]['d'+di]&&blocks[e.id]['d'+di][shift];
+    const o=document.createElement('option');o.value=e.id;
+    o.textContent=e.name+(isBlocked?' ⚠ חסום':'');
+    sel.appendChild(o);
+  });
+  document.getElementById('add-emp-modal').classList.add('open');
+}
+
+window.confirmAddEmpToShift=async function(){
+  if(!_pendingShift)return;
+  const {wk,di,shift,assigned}=_pendingShift;
+  const empId=document.getElementById('modal-emp-sel').value;
+  if(!empId)return;
+  const newList=[...assigned,empId];
+  showLoading(true);
+  await fbSet('sched/weeks/'+wk+'/schedule/d'+di+'/'+shift,newList);
+  showLoading(false);
+  closeModal('add-emp-modal');
+  renderMgrSchedule();
+};
+
+window.removeEmpFromShift=async function(wk,di,shift,empId){
+  const current=await fbGet('sched/weeks/'+wk+'/schedule/d'+di+'/'+shift)||[];
+  const updated=current.filter(e=>e!==empId);
+  showLoading(true);
+  await fbSet('sched/weeks/'+wk+'/schedule/d'+di+'/'+shift,updated);
+  showLoading(false);
+  renderMgrSchedule();
+};
+
+window.autoAssign=async function(){
+  if(!confirm('שיבוץ אוטומטי יחליף את השיבוץ הנוכחי לשבוע זה. להמשיך?'))return;
+  const wk=weekKey(currentWeekStart);
+  const emps=await fbGet('sched/config/employees')||DEFAULT_EMPLOYEES;
+  const blocks=await fbGet('sched/weeks/'+wk+'/blocks')||{};
+  const newSched={};
+  // simple round-robin avoiding blocks
+  let empIdx=0;
+  for(let di=0;di<7;di++){
+    newSched['d'+di]={};
+    for(const shift of SHIFTS){
+      const available=emps.filter(e=>{
+        const b=blocks[e.id];return !(b&&b['d'+di]&&b['d'+di][shift]);
+      });
+      // assign 2 per shift if available
+      const pick=[];
+      for(let k=0;k<2&&available.length>0;k++){
+        pick.push(available[empIdx%available.length].id);
+        empIdx++;
+      }
+      newSched['d'+di][shift]=pick;
+    }
+  }
+  showLoading(true);
+  await fbSet('sched/weeks/'+wk+'/schedule',newSched);
+  showLoading(false);
+  renderMgrSchedule();
+};
+
+window.publishSchedule=async function(){
+  const wk=weekKey(currentWeekStart);
+  if(!confirm('לפרסם את הסידור לעובדים?'))return;
+  showLoading(true);
+  await fbSet('sched/weeks/'+wk+'/published',true);
+  showLoading(false);
+  document.getElementById('mgr-publish-banner').style.display='block';
+};
+
+// ===== MANAGER BLOCKS SUMMARY =====
+async function renderMgrBlocks(){
+  const wk=weekKey(currentWeekStart);
+  document.getElementById('mgr-blocks-week-title').textContent=fmtWeek(currentWeekStart);
+  const emps=await fbGet('sched/config/employees')||DEFAULT_EMPLOYEES;
+  const blocks=await fbGet('sched/weeks/'+wk+'/blocks')||{};
+  const notes=await fbGet('sched/weeks/'+wk+'/notes')||{};
+  const dlData=await fbGet('sched/weeks/'+wk+'/deadline')||{};
+  // deadline inputs
+  if(dlData.time)document.getElementById('deadline-input').value=dlData.time.slice(0,16);
+  if(dlData.maxBlocks)document.getElementById('max-blocks-input').value=dlData.maxBlocks;
+
+  const submitted=emps.filter(e=>blocks[e.id]&&Object.keys(blocks[e.id]).length>0);
+  document.getElementById('stat-total-emps').textContent=emps.length;
+  document.getElementById('stat-submitted').textContent=submitted.length;
+  document.getElementById('stat-pending').textContent=emps.length-submitted.length;
+
+  // per-emp summary
+  const grid=document.getElementById('blocks-summary-grid');grid.innerHTML='';
+  emps.forEach(emp=>{
+    const empBlocks=blocks[emp.id]||{};
+    const note=notes[emp.id]||'';
+    const chips=[];
+    for(let di=0;di<7;di++){
+      const db2=empBlocks['d'+di]||{};
+      SHIFTS.forEach(shift=>{if(db2[shift])chips.push(DAYS[di].slice(0,2)+' '+SHIFT_NAMES[shift]);});
+    }
+    const card=document.createElement('div');card.className='summary-emp-card';
+    card.innerHTML='<div class="summary-emp-name">'+emp.name+'</div>'+
+      '<div class="summary-blocks">'+
+      (chips.length?chips.map(c=>'<span class="block-chip">'+c+'</span>').join(''):'<span style="color:#bbb;font-size:10px;">ללא חסימות</span>')+
+      '</div>'+
+      (note?'<div style="margin-top:.4rem;"><span class="block-chip note" style="max-width:100%;white-space:normal;">📝 '+note+'</span></div>':'');
+    grid.appendChild(card);
+  });
+
+  // overview grid (how many blocked per shift per day)
+  const og=document.getElementById('mgr-overview-grid');og.innerHTML='';
+  const dates=weekDates(currentWeekStart);
+  DAYS.forEach((dayName,di)=>{
+    const col=document.createElement('div');col.className='day-col';
+    const hdr=document.createElement('div');hdr.className='day-hdr'+(di>=5?' weekend':'');
+    hdr.textContent=dayName;col.appendChild(hdr);
+    SHIFTS.forEach(shift=>{
+      const count=emps.filter(e=>blocks[e.id]&&blocks[e.id]['d'+di]&&blocks[e.id]['d'+di][shift]).length;
+      const cell=document.createElement('div');cell.className='shift-cell '+shiftClass(shift);
+      cell.style.position='relative';
+      if(count>0){cell.style.background='#fee2e2';cell.style.color='#991b1b';}
+      cell.textContent=SHIFT_NAMES[shift]+(count>0?' ('+count+')':'');
+      col.appendChild(cell);
+    });
+    og.appendChild(col);
+  });
+}
+
+window.saveDeadline=async function(){
+  const wk=weekKey(currentWeekStart);
+  const time=document.getElementById('deadline-input').value;
+  const maxBlocks=parseInt(document.getElementById('max-blocks-input').value)||3;
+  showLoading(true);
+  await fbSet('sched/weeks/'+wk+'/deadline',{time,maxBlocks});
+  showLoading(false);
+  showSaveMsg('deadline-save-msg');
+};
+
+// ===== TASKS =====
+async function renderMgrTasks(){
+  const wk=weekKey(currentWeekStart);
+  document.getElementById('mgr-tasks-week-title').textContent=fmtWeek(currentWeekStart);
+  const tasks=await fbGet('sched/weeks/'+wk+'/tasks')||{};
+  const emps=await fbGet('sched/config/employees')||DEFAULT_EMPLOYEES;
+  const list=document.getElementById('tasks-list');list.innerHTML='';
+  if(!Object.keys(tasks).length){
+    list.innerHTML='<div style="color:#888;font-size:13px;text-align:center;padding:1rem;">אין משימות לשבוע זה</div>';return;
+  }
+  Object.entries(tasks).forEach(([tid,task])=>{
+    const row=document.createElement('div');row.className='task-row';
+    const assignedEmps=(task.emps||[]).map(id=>emps.find(e=>e.id===id)).filter(Boolean);
+    row.innerHTML='<div class="task-name">📋 '+task.name+'</div>'+
+      '<div class="task-emps">'+
+        assignedEmps.map(e=>'<span class="task-emp-badge">'+e.name+'<button onclick="removeEmpFromTask(\''+wk+'\',\''+tid+'\',\''+e.id+'\')">×</button></span>').join('')+
+        '<select class="inline-sel" id="task-add-sel-'+tid+'"><option value="">+ הוסף</option>'+
+        emps.filter(e=>!(task.emps||[]).includes(e.id)).map(e=>'<option value="'+e.id+'">'+e.name+'</option>').join('')+
+        '</select>'+
+        '<button onclick="addEmpToTask(\''+wk+'\',\''+tid+'\')" style="font-size:11px;background:#eef2ff;color:#3182ce;border:1.5px solid #3182ce;border-radius:5px;padding:3px 8px;cursor:pointer;">הוסף</button>'+
+      '</div>'+
+      '<button onclick="deleteTask(\''+wk+'\',\''+tid+'\')" class="btn-del" style="margin-right:auto;">🗑</button>';
+    list.appendChild(row);
+  });
+}
+
+function openAddTaskModal(){document.getElementById('task-name-input').value='';document.getElementById('add-task-modal').classList.add('open');}
+
+window.confirmAddTask=async function(){
+  const name=document.getElementById('task-name-input').value.trim();
+  if(!name)return;
+  const wk=weekKey(currentWeekStart);
+  const tid='task'+Date.now();
+  showLoading(true);
+  await fbSet('sched/weeks/'+wk+'/tasks/'+tid,{name,emps:[]});
+  showLoading(false);
+  closeModal('add-task-modal');
+  renderMgrTasks();
+};
+
+window.deleteTask=async function(wk,tid){
+  if(!confirm('למחוק משימה זו?'))return;
+  showLoading(true);
+  await db.ref('sched/weeks/'+wk+'/tasks/'+tid).remove();
+  showLoading(false);
+  renderMgrTasks();
+};
+
+window.addEmpToTask=async function(wk,tid){
+  const sel=document.getElementById('task-add-sel-'+tid);
+  const empId=sel?sel.value:'';if(!empId)return;
+  const task=await fbGet('sched/weeks/'+wk+'/tasks/'+tid)||{};
+  const emps=[...(task.emps||[]),empId];
+  showLoading(true);
+  await fbSet('sched/weeks/'+wk+'/tasks/'+tid+'/emps',emps);
+  showLoading(false);
+  renderMgrTasks();
+};
+
+window.removeEmpFromTask=async function(wk,tid,empId){
+  const task=await fbGet('sched/weeks/'+wk+'/tasks/'+tid)||{};
+  const emps=(task.emps||[]).filter(e=>e!==empId);
+  showLoading(true);
+  await fbSet('sched/weeks/'+wk+'/tasks/'+tid+'/emps',emps);
+  showLoading(false);
+  renderMgrTasks();
+};
+
+// ===== SETTINGS =====
+async function renderMgrSettings(){
+  const emps=await fbGet('sched/config/employees')||DEFAULT_EMPLOYEES;
+  _workingEmps=[...emps];
+  renderEmpRows(_workingEmps);
+}
+function renderEmpRows(emps){
+  const c=document.getElementById('settings-emp-list');c.innerHTML='';
+  emps.forEach((emp,i)=>{
+    const div=document.createElement('div');div.className='emp-row';
+    div.innerHTML='<div class="emp-num">'+(i+1)+'</div>'+
+      '<div style="display:flex;flex-direction:column;flex:1;gap:2px;min-width:80px;"><span class="lbl-tiny">שם</span><input class="emp-name-in" value="'+emp.name+'" id="sn-'+i+'"></div>'+
+      '<div style="display:flex;flex-direction:column;gap:2px;"><span class="lbl-tiny">קוד</span><input class="emp-pin-in" value="'+emp.pin+'" id="sp-'+i+'" maxlength="4" inputmode="numeric"></div>'+
+      '<button class="btn-del" onclick="delEmpRow('+i+')">×</button>';
+    c.appendChild(div);
+  });
+}
+window.addEmpRow=function(){
+  _workingEmps.forEach((e,i)=>{const n=document.getElementById('sn-'+i);const p=document.getElementById('sp-'+i);if(n)e.name=n.value;if(p)e.pin=p.value;});
+  _workingEmps.push({id:'emp'+Date.now(),name:'עובד '+(_workingEmps.length+1),pin:'0000'});
+  renderEmpRows(_workingEmps);
+};
+window.delEmpRow=function(idx){
+  if(_workingEmps.length<=1){alert('חייב להיות לפחות עובד אחד');return;}
+  if(!confirm('למחוק "'+_workingEmps[idx].name+'"?'))return;
+  _workingEmps.splice(idx,1);renderEmpRows(_workingEmps);
+};
+window.saveEmployees=async function(){
+  let errs=[];
+  const updated=_workingEmps.map((emp,i)=>{
+    const n=document.getElementById('sn-'+i),p=document.getElementById('sp-'+i);
+    const nm=n?n.value.trim():emp.name,pn=p?p.value.trim():emp.pin;
+    if(!nm)errs.push('שם עובד '+(i+1)+' ריק');
+    if(!/^\d{4}$/.test(pn))errs.push('קוד עובד '+(i+1)+' חייב להיות 4 ספרות');
+    return{...emp,name:nm,pin:pn};
+  });
+  if(errs.length){alert(errs.join('\n'));return;}
+  showLoading(true);
+  await fbSet('sched/config/employees',updated);
+  _workingEmps=updated;
+  showLoading(false);
+  // rebuild login select
+  buildLoginSelect(updated);
+  showSaveMsg('emp-save-msg');
+};
+
+window.saveMgrPin=async function(){
+  const cur=document.getElementById('mgr-cur').value.trim();
+  const nw=document.getElementById('mgr-new').value.trim();
+  const nw2=document.getElementById('mgr-new2').value.trim();
+  const err=document.getElementById('mgr-pin-err');err.textContent='';
+  const mgr=await fbGet('sched/config/manager')||DEFAULT_MGR;
+  if(cur!==mgr.pin){err.textContent='קוד נוכחי שגוי';return;}
+  if(!/^\d{4}$/.test(nw)){err.textContent='קוד חדש חייב להיות 4 ספרות';return;}
+  if(nw!==nw2){err.textContent='הקודים לא תואמים';return;}
+  showLoading(true);
+  await fbSet('sched/config/manager',{pin:nw});
+  showLoading(false);
+  ['mgr-cur','mgr-new','mgr-new2'].forEach(id=>document.getElementById(id).value='');
+  showSaveMsg('mgr-pin-msg');
+};
+</script>
+</body>
+</html>
