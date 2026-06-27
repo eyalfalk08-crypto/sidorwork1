@@ -2128,7 +2128,9 @@ async function rMgrSwaps(){
   });
 }
 
-window.openSwapNew=async function(){
+window.openSwapNew=async function(){const pub=await fg('sched/weeks/'+wk(CW)+'/published');
+if(!pub){alert('הסידור טרם פורסם — לא ניתן לבקש החלפות');return;}
+                                    
   // Open the swap request modal with current week context
   const w=wk(CW);
   const sched=await fg('sched/weeks/'+w+'/schedule')||{};
