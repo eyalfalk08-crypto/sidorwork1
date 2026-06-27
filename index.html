@@ -1823,6 +1823,8 @@ async function startNotifListener(){
     try{
       await OneSignal.login(key);
       await window.OneSignal.User.addTag('userId',key);
+      }catch(e){console.log('OneSignal error:',e);}
+  }
   }
   // Live Firebase listener - updates badge in real time
   db.ref('sched/notifs/'+key).on('value',snap=>{
