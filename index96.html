@@ -1,0 +1,2361 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>מערכת סידור עבודה</title>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+:root{
+  --pr:#6d28d9;--prd:#4c1d95;--prm:#7c3aed;--prl:#ede9fe;--prll:#f5f3ff;
+  --acc:#8b5cf6;--acc2:#a78bfa;
+  --bg:#f8f7ff;
+  --card-shadow:0 1px 3px rgba(109,40,217,.08),0 4px 12px rgba(109,40,217,.06);
+  --card-radius:14px;
+  --success:#059669;--danger:#dc2626;--warn:#d97706;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:#1e1b4b;min-height:100vh;direction:rtl;-webkit-font-smoothing:antialiased;}
+
+/* LOADING */
+#lo{position:fixed;inset:0;background:rgba(255,255,255,.96);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;}
+.sp{width:48px;height:48px;border:4px solid var(--prl);border-top-color:var(--pr);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lt{font-size:14px;color:var(--pr);font-weight:600;letter-spacing:.3px;}
+
+/* LOGIN */
+#ls{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1e1b4b 0%,#4c1d95 50%,#6d28d9 100%);padding:1rem;position:relative;overflow:hidden;}
+#ls::before{content:'';position:absolute;width:500px;height:500px;background:rgba(255,255,255,.03);border-radius:50%;top:-100px;right:-100px;}
+#ls::after{content:'';position:absolute;width:300px;height:300px;background:rgba(255,255,255,.03);border-radius:50%;bottom:-50px;left:-50px;}
+.lc{background:white;border-radius:20px;padding:2.5rem 2rem;width:100%;max-width:390px;box-shadow:0 25px 60px rgba(0,0,0,.3);position:relative;z-index:1;}
+.ll{text-align:center;margin-bottom:2rem;}
+.ll .ic{width:68px;height:68px;background:linear-gradient(135deg,var(--pr),var(--acc));border-radius:18px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;box-shadow:0 8px 20px rgba(109,40,217,.3);}
+.ll .ic svg{width:32px;height:32px;fill:white;}
+.ll h1{font-size:22px;font-weight:800;color:#1e1b4b;letter-spacing:-.3px;}
+.ll p{font-size:13px;color:#888;margin-top:4px;}
+.fg{margin-bottom:1.1rem;}
+.fg label{display:block;font-size:12px;font-weight:700;color:#555;margin-bottom:6px;letter-spacing:.2px;}
+.fg select,.fg input{width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;background:white;direction:rtl;-webkit-appearance:none;transition:border .2s,box-shadow .2s;}
+.fg select:focus,.fg input:focus{border-color:var(--pr);box-shadow:0 0 0 3px rgba(109,40,217,.1);}
+.bl{width:100%;padding:14px;background:linear-gradient(135deg,var(--pr),var(--prm));color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.2px;transition:transform .1s,box-shadow .2s;box-shadow:0 4px 14px rgba(109,40,217,.35);}
+.bl:active{transform:scale(.98);}
+.em{color:var(--danger);font-size:12px;text-align:center;margin-top:7px;min-height:18px;}
+
+/* APP */
+#app{display:none;min-height:100vh;}
+.hdr{background:linear-gradient(135deg,#1e1b4b,#4c1d95);color:white;padding:0 1.2rem;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.2);}
+.hl{display:flex;align-items:center;gap:.7rem;}
+.ht{font-size:16px;font-weight:800;letter-spacing:-.2px;}
+.hr{font-size:11px;background:rgba(255,255,255,.15);padding:3px 11px;border-radius:20px;backdrop-filter:blur(4px);}
+.hu{font-size:11px;color:#c4b5fd;}
+.blo{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:white;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;transition:background .2s;}
+.blo:hover{background:rgba(255,255,255,.2);}
+
+/* TABS */
+.tabs{display:flex;gap:4px;padding:.8rem 1rem .5rem;overflow-x:auto;background:white;border-bottom:1px solid #f0eefb;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:8px 16px;border-radius:9px;border:none;background:transparent;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;color:#888;transition:all .2s;}
+.tab:hover{background:var(--prll);color:var(--pr);}
+.tab.active{background:var(--pr);color:white;box-shadow:0 2px 8px rgba(109,40,217,.3);}
+
+/* VIEWS */
+.view{display:none;padding:1.2rem;max-width:1140px;margin:0 auto;}
+.view.active{display:block;}
+
+/* CARD */
+.card{background:white;border-radius:var(--card-radius);padding:1.3rem;box-shadow:var(--card-shadow);margin-bottom:1rem;border:1px solid rgba(109,40,217,.06);}
+.card h3{font-size:14px;font-weight:700;margin-bottom:.8rem;color:#1e1b4b;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem;}
+
+/* WEEK NAV */
+.wn{display:flex;align-items:center;gap:.7rem;margin-bottom:1rem;background:white;padding:.9rem 1.2rem;border-radius:var(--card-radius);box-shadow:var(--card-shadow);flex-wrap:wrap;border:1px solid rgba(109,40,217,.06);}
+.wn button{background:var(--prll);border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:var(--pr);transition:background .2s;}
+.wn button:hover{background:var(--prl);}
+.wt{font-size:15px;font-weight:800;flex:1;text-align:center;color:#1e1b4b;letter-spacing:-.2px;}
+
+/* BADGES */
+.dlb{font-size:11px;padding:4px 11px;border-radius:20px;font-weight:700;}
+.dlb.ok{background:#d1fae5;color:#065f46;}
+.dlb.cl{background:#fee2e2;color:#991b1b;}
+
+/* BLOCKS GRID */
+.bg{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:1rem;}
+.dc{display:flex;flex-direction:column;gap:3px;}
+.dh{text-align:center;font-size:11px;font-weight:700;color:var(--prm);padding:7px 2px;background:var(--prll);border-radius:8px;}
+.dh.we{background:var(--prl);color:var(--prd);}
+.sc{border-radius:8px;padding:6px 3px;text-align:center;font-size:10px;font-weight:600;cursor:pointer;min-height:36px;display:flex;align-items:center;justify-content:center;transition:all .15s;user-select:none;letter-spacing:.1px;}
+.sc:hover{filter:brightness(.92);transform:scale(.97);}
+.sc-m{background:#fef3c7;color:#92400e;}
+.sc-e{background:#dbeafe;color:#1e40af;}
+.sc-n{background:#ede9fe;color:#4c1d95;}
+.sc-bl{background:#fee2e2;color:#991b1b;font-size:14px;}
+.sc-lk{background:#f3f4f6;color:#9ca3af;cursor:not-allowed;}
+
+/* SCHEDULE */
+.sg{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
+.sd{background:var(--prll);border-radius:12px;padding:.7rem;border:1px solid rgba(109,40,217,.08);}
+.sdh{text-align:center;font-size:12px;font-weight:800;color:#1e1b4b;margin-bottom:.5rem;padding-bottom:.4rem;border-bottom:2px solid rgba(109,40,217,.1);}
+.sdh.we{color:var(--prm);}
+.sb{border-radius:8px;padding:.45rem .55rem;margin-bottom:.3rem;}
+.sb-m{background:#fffbeb;border-right:3px solid #f59e0b;}
+.sb-e{background:#dbeafe;border-right:3px solid #2563eb;}
+.sb-n{background:#ede9fe;border-right:3px solid #7c3aed;}
+.sl{font-size:11px;font-weight:700;color:#555;margin-bottom:3px;}
+.se{font-size:11px;color:#1e1b4b;padding:4px 7px;background:rgba(255,255,255,.85);border-radius:6px;margin-bottom:3px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px;}
+.se .rb{background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0;}
+.ab{font-size:10px;color:var(--pr);background:var(--prll);border:none;border-radius:5px;padding:3px 7px;cursor:pointer;width:100%;margin-top:3px;font-weight:600;transition:background .2s;}
+.ab:hover{background:var(--prl);}
+
+/* SUMMARY */
+.sg2{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem;}
+@media(min-width:500px){.sg2{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:700px){.sg2{grid-template-columns:repeat(4,1fr);}}
+.suc{background:white;border-radius:12px;padding:.8rem;border:1px solid rgba(109,40,217,.1);box-shadow:0 1px 4px rgba(109,40,217,.06);}
+.sun{font-size:12px;font-weight:700;margin-bottom:.3rem;color:#1e1b4b;}
+.sut{font-size:10px;background:var(--prl);color:var(--pr);padding:2px 8px;border-radius:8px;display:inline-block;margin-bottom:.3rem;font-weight:600;}
+.chip{font-size:9px;padding:2px 6px;border-radius:5px;background:#fee2e2;color:#991b1b;font-weight:600;display:inline-block;margin:1px;}
+.chip.nt{background:#fef3c7;color:#92400e;}
+
+/* TASKS */
+.tr{display:flex;align-items:flex-start;gap:8px;padding:.7rem 1rem;border:1px solid rgba(109,40,217,.08);border-radius:12px;margin-bottom:.5rem;background:white;box-shadow:0 1px 3px rgba(109,40,217,.05);flex-wrap:wrap;}
+.tn{flex:1;min-width:120px;}
+.tnm{font-size:13px;font-weight:700;color:#1e1b4b;}
+.tdt{font-size:11px;color:#888;margin-top:2px;}
+.teb{display:flex;flex-wrap:wrap;gap:4px;margin-top:.4rem;}
+.tebadge{background:var(--prl);color:var(--pr);font-size:10px;padding:3px 9px;border-radius:10px;display:flex;align-items:center;gap:3px;font-weight:600;}
+.tebadge button{background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;padding:0;}
+
+/* SETTINGS */
+.er{display:flex;align-items:center;gap:6px;margin-bottom:7px;padding:8px 10px;border:1px solid rgba(109,40,217,.08);border-radius:10px;background:var(--prll);flex-wrap:wrap;}
+.en{width:24px;height:24px;background:linear-gradient(135deg,var(--pr),var(--acc));color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+.ei{flex:2;min-width:70px;padding:7px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;direction:rtl;background:white;transition:border .2s;}
+.ei:focus{border-color:var(--pr);box-shadow:0 0 0 3px rgba(109,40,217,.1);}
+.epi{width:75px;padding:7px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;direction:ltr;text-align:center;letter-spacing:2px;background:white;transition:border .2s;}
+.epi:focus{border-color:var(--pr);box-shadow:0 0 0 3px rgba(109,40,217,.1);}
+.ets{padding:6px 8px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:11px;outline:none;cursor:pointer;-webkit-appearance:none;background:white;}
+.emx{width:65px;padding:6px 8px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:12px;outline:none;text-align:center;background:white;}
+.lt2{font-size:10px;color:#9ca3af;font-weight:600;}
+.bd{background:#fee2e2;color:var(--danger);border:none;width:26px;height:26px;border-radius:7px;cursor:pointer;font-size:13px;transition:background .2s;}
+.bd:hover{background:#fecaca;}
+.badd{background:var(--prll);color:var(--pr);border:1.5px dashed var(--acc2);border-radius:10px;padding:9px;width:100%;cursor:pointer;font-size:13px;font-weight:700;margin-top:.4rem;transition:background .2s;}
+.badd:hover{background:var(--prl);}
+.bp{background:linear-gradient(135deg,var(--pr),var(--prm));color:white;border:none;padding:10px 24px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;margin-top:.8rem;box-shadow:0 3px 10px rgba(109,40,217,.25);transition:transform .1s,box-shadow .2s;}
+.bp:active{transform:scale(.98);}
+.sm{color:var(--success);font-size:12px;margin-top:5px;opacity:0;transition:opacity .3s;min-height:14px;font-weight:600;}
+.sm.s{opacity:1;}
+.pg{display:flex;flex-direction:column;gap:.7rem;max-width:280px;}
+.pg label{font-size:12px;font-weight:700;color:#555;display:block;margin-bottom:2px;}
+.pf{padding:10px 13px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;direction:ltr;letter-spacing:3px;text-align:center;width:100%;transition:border .2s;}
+.pf:focus{border-color:var(--pr);box-shadow:0 0 0 3px rgba(109,40,217,.1);}
+.pe{color:var(--danger);font-size:12px;min-height:14px;font-weight:600;}
+
+/* MODALS */
+.mo{display:none;position:fixed;inset:0;background:rgba(15,15,35,.55);z-index:200;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px);}
+.mo.op{display:flex;}
+.mb{background:white;border-radius:20px;padding:1.6rem;width:100%;max-width:440px;direction:rtl;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.mb h3{font-size:16px;font-weight:800;margin-bottom:1.1rem;color:#1e1b4b;}
+.mc{float:left;background:#f3f4f6;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;line-height:28px;text-align:center;color:#888;transition:background .2s;}
+.mc:hover{background:#e5e7eb;}
+
+/* ALERT BOXES */
+.wb{background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:.7rem 1rem;margin-bottom:.8rem;font-size:12px;color:#92400e;font-weight:500;}
+.db{background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:.7rem 1rem;margin-bottom:.8rem;font-size:12px;color:#991b1b;font-weight:600;}
+.pb{background:#d1fae5;border:1px solid #6ee7b7;border-radius:10px;padding:.7rem 1rem;margin-bottom:.8rem;font-size:13px;color:#065f46;font-weight:700;text-align:center;}
+
+/* STATS */
+.str{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem;}
+.stm{background:white;border-radius:10px;padding:.7rem .9rem;text-align:center;border:1px solid rgba(109,40,217,.08);box-shadow:0 1px 3px rgba(109,40,217,.05);}
+.stm .v{font-size:22px;font-weight:800;color:var(--pr);}
+.stm .l{font-size:10px;color:#9ca3af;font-weight:700;margin-top:1px;}
+
+/* FORM INPUTS */
+.isel{padding:6px 9px;border:1.5px solid #e5e7eb;border-radius:7px;font-size:11px;outline:none;background:white;-webkit-appearance:none;transition:border .2s;}
+.isel:focus{border-color:var(--pr);}
+.note-inp{width:100%;padding:8px 11px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;direction:rtl;font-family:inherit;resize:vertical;transition:border .2s;}
+.note-inp:focus{border-color:var(--pr);box-shadow:0 0 0 3px rgba(109,40,217,.1);}
+.note-badge{display:inline-block;font-size:10px;background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:5px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* NOTIFICATION BELL */
+#notif-bell{position:relative;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:white;padding:7px 13px;border-radius:8px;cursor:pointer;font-size:15px;transition:background .2s;}
+#notif-bell:hover{background:rgba(255,255,255,.22);}
+#notif-badge{position:absolute;top:-6px;right:-6px;background:var(--danger);color:white;border-radius:50%;min-width:18px;height:18px;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #1e1b4b;padding:0 2px;}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .sg{grid-template-columns:1fr 1fr;}
+  .bg{gap:3px;}
+  .sc{min-height:30px;font-size:9px;}
+  .view{padding:.8rem;}
+  .wn{padding:.7rem .9rem;}
+}
+</style>
+</head>
+<body>
+<div id="lo"><div class="sp"></div><div class="lt">מתחבר...</div></div>
+
+<div id="ls">
+  <div class="lc">
+    <div class="ll">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg></div>
+      <h1>מערכת סידור עבודה</h1><p>הכנס פרטים לכניסה</p>
+    </div>
+    <div class="fg"><label>בחר משתמש</label><select id="lu"><option value="">-- בחר --</option></select></div>
+    <div class="fg"><label>קוד כניסה (4 ספרות)</label><input type="password" id="lp" maxlength="4" placeholder="הכנס קוד" inputmode="numeric"></div>
+    <button class="bl" onclick="doLogin()">כניסה</button>
+    <div class="em" id="le"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="hdr">
+    <div class="hl"><div class="ht">סידור עבודה</div><span class="hr" id="hro"></span></div>
+    <div style="display:flex;align-items:center;gap:.4rem;"><span class="hu" id="hu"></span><button class="blo" onclick="doLogout()">יציאה</button></div>
+  </div>
+  <div id="etabs" class="tabs" style="display:none;">
+    <button class="tab active" onclick="eTab('blocks')">חסימות</button>
+    <button class="tab" id="vol-tab" onclick="eTab('vol')">התנדבות</button>
+    <button class="tab" onclick="eTab('sched')">הסידור שלי</button>
+    <button class="tab" onclick="eTab('swaps')">החלפות <span id="emp-swap-badge" style="display:none;background:#fee2e2;color:#991b1b;border-radius:10px;padding:1px 6px;font-size:10px;margin-right:2px;"></span></button>
+  </div>
+  <div id="mtabs" class="tabs" style="display:none;">
+    <button class="tab active" onclick="mTab('sched')">סידור</button>
+    <button class="tab" onclick="mTab('blocks')">חסימות</button>
+    <button class="tab" onclick="mTab('tasks')">משמרות/משימות</button>
+    <button class="tab" onclick="mTab('swaps')">החלפות <span id="mgr-swap-badge" style="display:none;background:#fee2e2;color:#991b1b;border-radius:10px;padding:1px 6px;font-size:10px;margin-right:2px;"></span></button>
+    <button class="tab" onclick="mTab('settings')">הגדרות</button>
+  </div>
+
+  <!-- EMP BLOCKS -->
+  <div id="v-eblocks" class="view active">
+    <div class="wn">
+      <button onclick="cw(-1)">◀</button>
+      <div class="wt" id="wt-eb"></div>
+      <button onclick="cw(1)">▶</button>
+      <span class="dlb" id="dl-badge" style="display:none;"></span>
+    </div>
+    <div class="card">
+      <h3><span>חסימות שלי</span><span id="bc" style="font-size:11px;background:var(--prl);color:var(--pr);padding:3px 9px;border-radius:20px;"></span></h3>
+      <div id="dl-warn" style="display:none;" class="db">⛔ הדד-ליין עבר — לא ניתן לשנות חסימות</div>
+      <div style="display:flex;gap:.6rem;font-size:10px;margin-bottom:.6rem;flex-wrap:wrap;">
+        <span style="display:flex;align-items:center;gap:3px;"><span style="width:11px;height:11px;border-radius:2px;background:#fef9c3;display:inline-block;"></span>בוקר</span>
+        <span style="display:flex;align-items:center;gap:3px;"><span style="width:11px;height:11px;border-radius:2px;background:#dbeafe;display:inline-block;"></span>ערב</span>
+        <span style="display:flex;align-items:center;gap:3px;"><span style="width:11px;height:11px;border-radius:2px;background:var(--prl);display:inline-block;"></span>לילה</span>
+        <span style="display:flex;align-items:center;gap:3px;"><span style="width:11px;height:11px;border-radius:2px;background:#fee2e2;display:inline-block;"></span>חסום</span>
+      </div>
+      <div class="bg" id="eb-grid"></div>
+      <div class="fg" style="margin-top:.7rem;">
+        <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px;">הערה שבועית</label>
+        <textarea id="enote" class="note-inp" rows="2" placeholder="בקשות, הערות..."></textarea>
+      </div>
+      <button class="bp" onclick="saveBlocks()" style="width:100%;max-width:200px;display:block;margin:.7rem auto 0;">שמור חסימות</button>
+      <div class="sm" id="sm-blocks" style="text-align:center;margin-top:4px;">נשמר!</div>
+    </div>
+  </div>
+
+  <!-- EMP VOLUNTEER -->
+  <div id="v-evol" class="view">
+    <div class="wn">
+      <button onclick="cw(-1)">◀</button>
+      <div class="wt" id="wt-ev"></div>
+      <button onclick="cw(1)">▶</button>
+    </div>
+    <div class="card">
+      <h3>התנדבות למשמרות</h3>
+      <p style="font-size:12px;color:#888;margin-bottom:.8rem;">לחץ על משמרת להתנדב אליה. המנהל יצטרך לאשר.</p>
+      <div class="bg" id="vol-grid"></div>
+      <div class="sm" id="sm-vol" style="text-align:center;margin-top:4px;">נשמר!</div>
+    </div>
+  </div>
+
+  <!-- EMP SWAPS -->
+  <div id="v-eswaps" class="view">
+    <div class="wn">
+      <button onclick="cw(-1)">◀</button>
+      <div class="wt" id="wt-eswap"></div>
+      <button onclick="cw(1)">▶</button>
+      <button onclick="openSwapNew()" style="background:var(--prl);color:var(--pr);border:1.5px solid #a78bfa;font-weight:700;">+ בקשת החלפה חדשה</button>
+    </div>
+    <div id="emp-swaps-content"></div>
+  </div>
+
+  <!-- EMP SCHEDULE -->
+  <div id="v-esched" class="view">
+    <div class="wn">
+      <button onclick="cw(-1)">◀</button>
+      <div class="wt" id="wt-es"></div>
+      <button onclick="cw(1)">▶</button>
+    </div>
+    <div id="esched-content"></div>
+  </div>
+
+  <!-- MGR SCHEDULE -->
+  <div id="v-msched" class="view active">
+    <div class="wn">
+      <button onclick="cw(-1)">◀</button>
+      <div class="wt" id="wt-ms"></div>
+      <button onclick="cw(1)">▶</button>
+      <button onclick="autoAssign()" style="background:var(--prl);color:var(--pr);border:1.5px solid #a78bfa;">⚡ אוטומטי</button>
+      <button onclick="publishToggle()" id="pub-btn" style="background:#dcfce7;color:#166534;border:1.5px solid #86efac;">✔ פרסם</button>
+
+    </div>
+    <div id="pub-banner" style="display:none;" class="pb"></div>
+    <div id="msched-grid" class="sg"></div>
+  </div>
+
+  <!-- MGR BLOCKS -->
+  <div id="v-mblocks" class="view">
+    <div class="wn">
+      <button onclick="cw(-1)">◀</button>
+      <div class="wt" id="wt-mb"></div>
+      <button onclick="cw(1)">▶</button>
+    </div>
+    <div class="card">
+      <h3>הגדרות חסימות — לפי סוג יום</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.8rem;">
+        <div style="background:var(--prll);border-radius:9px;padding:.7rem;">
+          <div style="font-size:12px;font-weight:700;color:var(--prd);margin-bottom:.5rem;">📅 ימים רגילים (א׳–ה׳)</div>
+          <div style="display:flex;gap:.7rem;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" id="b-am" style="accent-color:var(--pr);width:15px;height:15px;">בוקר</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" id="b-ae" style="accent-color:var(--pr);width:15px;height:15px;">ערב</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" id="b-an" style="accent-color:var(--pr);width:15px;height:15px;">לילה</label>
+          </div>
+        </div>
+        <div style="background:var(--prll);border-radius:9px;padding:.7rem;">
+          <div style="font-size:12px;font-weight:700;color:var(--prd);margin-bottom:.5rem;">🗓 סוף שבוע (ו׳–ש׳)</div>
+          <div style="display:flex;gap:.7rem;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" id="b-wm" style="accent-color:var(--pr);width:15px;height:15px;">בוקר</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" id="b-we" style="accent-color:var(--pr);width:15px;height:15px;">ערב</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;"><input type="checkbox" id="b-wn" style="accent-color:var(--pr);width:15px;height:15px;">לילה</label>
+          </div>
+        </div>
+      </div>
+      <button class="bp" onclick="saveBlockSettings()" style="margin-top:0;">שמור הגדרות</button>
+      <div class="sm" id="sm-bsets">נשמר!</div>
+    </div>
+    <div class="card">
+      <h3>דד-ליין לחסימות</h3>
+      <div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-bottom:.6rem;">
+        <input type="datetime-local" id="dl-in" style="padding:7px 11px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;">
+        <button class="bp" onclick="saveDL()" style="margin-top:0;">שמור</button>
+        <button onclick="clearDL()" style="padding:7px 12px;background:#fee2e2;color:#991b1b;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">מחק</button>
+        <div class="sm" id="sm-dl">נשמר!</div>
+      </div>
+      <div id="dl-status"></div>
+    </div>
+    <div class="str">
+      <div class="stm"><div class="v" id="st-e">0</div><div class="l">עובדים</div></div>
+      <div class="stm"><div class="v" id="st-s">0</div><div class="l">הגישו</div></div>
+      <div class="stm"><div class="v" id="st-p">0</div><div class="l">טרם הגישו</div></div>
+    </div>
+    <div class="card">
+      <h3>חסימות לפי עובד</h3>
+      <div class="sg2" id="blocks-sum"></div>
+    </div>
+    <div class="card">
+      <h3>סקירה — חסימות לפי משמרת ויום</h3>
+      <div class="bg" id="mb-overview"></div>
+    </div>
+  </div>
+
+  <!-- MGR TASKS/SHIFTS -->
+  <div id="v-mtasks" class="view">
+    <div class="wn">
+      <button onclick="cw(-1)">◀</button>
+      <div class="wt" id="wt-mt"></div>
+      <button onclick="cw(1)">▶</button>
+      <button onclick="openAddTaskModal()" style="background:var(--prl);color:var(--pr);border:1.5px solid #a78bfa;font-weight:700;">+ הוסף משמרת/משימה</button>
+    </div>
+    <div id="tasks-list"></div>
+  </div>
+
+  <!-- MGR SWAPS -->
+  <div id="v-mswaps" class="view">
+    <div class="wn">
+      <button onclick="cw(-1)">◀</button>
+      <div class="wt" id="wt-mswap"></div>
+      <button onclick="cw(1)">▶</button>
+    </div>
+    <div class="card">
+      <h3>בקשות החלפה ממתינות</h3>
+      <div id="mgr-swaps-pending"></div>
+    </div>
+    <div class="card">
+      <h3>היסטוריית החלפות</h3>
+      <div id="mgr-swaps-history"></div>
+    </div>
+  </div>
+
+  <!-- MGR SETTINGS -->
+  <div id="v-msettings" class="view">
+    <div class="card">
+      <h3>הגדרות חסימות כלליות</h3>
+      <div style="margin-bottom:.9rem;">
+        <div style="font-size:12px;font-weight:700;color:var(--prd);margin-bottom:.5rem;padding:.4rem .7rem;background:var(--prll);border-radius:7px;">📅 ימים רגילים (ראשון–חמישי)</div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;padding-right:.5rem;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="a-m" checked style="accent-color:var(--pr);width:16px;height:16px;">בוקר</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="a-e" checked style="accent-color:var(--pr);width:16px;height:16px;">ערב</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="a-n" checked style="accent-color:var(--pr);width:16px;height:16px;">לילה</label>
+        </div>
+      </div>
+      <div style="margin-bottom:.9rem;">
+        <div style="font-size:12px;font-weight:700;color:var(--prd);margin-bottom:.5rem;padding:.4rem .7rem;background:var(--prll);border-radius:7px;">🗓 סוף שבוע (שישי–שבת)</div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;padding-right:.5rem;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="a-wm" checked style="accent-color:var(--pr);width:16px;height:16px;">בוקר</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="a-we" checked style="accent-color:var(--pr);width:16px;height:16px;">ערב</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox" id="a-wn" checked style="accent-color:var(--pr);width:16px;height:16px;">לילה</label>
+        </div>
+      </div>
+      <button class="bp" onclick="saveGlobalSettings()">שמור הגדרות</button>
+      <div class="sm" id="sm-gs">נשמר!</div>
+    </div>
+    <div class="card">
+      <h3>ניהול עובדים <span style="font-size:10px;color:#888;font-weight:400;">(שם | קוד | סוג | מקס חסימות לכל משמרת)</span></h3>
+      <div id="emp-list"></div>
+      <button class="badd" onclick="addEmpRow()">+ הוסף עובד</button>
+      <button class="bp" onclick="saveEmps()">שמור שינויים</button>
+      <div class="sm" id="sm-emps">נשמר!</div>
+    </div>
+    <div class="card" style="max-width:300px;">
+      <h3>ניקוי נתונים</h3>
+      <p style="font-size:12px;color:#888;margin-bottom:.8rem;">מחיקת כל הנתונים שנצברו (חסימות, סידורים, התנדבויות, התראות)</p>
+      <button onclick="resetAllData()" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:9px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;">🗑 מחק הכל</button>
+    </div>
+    <div class="card" style="max-width:300px;">
+      <h3>שינוי סיסמת מנהל</h3>
+      <div class="pg" style="margin-top:.5rem;">
+        <div><label>קוד נוכחי</label><input type="password" class="pf" id="mc" maxlength="4" placeholder="····" inputmode="numeric"></div>
+        <div><label>קוד חדש</label><input type="password" class="pf" id="mn" maxlength="4" placeholder="····" inputmode="numeric"></div>
+        <div><label>אשר</label><input type="password" class="pf" id="mn2" maxlength="4" placeholder="····" inputmode="numeric"></div>
+        <button class="bp" onclick="saveMPin()">שנה קוד</button>
+        <div class="pe" id="mpe"></div>
+        <div class="sm" id="sm-mp">הקוד עודכן!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="mo" id="mo-addemp">
+  <div class="mb">
+    <button class="mc" onclick="cm('mo-addemp')">✕</button>
+    <h3>הוסף עובד למשמרת</h3>
+    <div class="fg"><label>בחר עובד</label><select id="mo-esel" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;-webkit-appearance:none;"></select></div>
+    <div class="fg"><label>הערה לעובד (אופציונלי)</label><input type="text" id="mo-enote" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;" placeholder="הערה..."></div>
+    <button class="bp" onclick="confirmAddEmp()" style="width:100%;">הוסף לסידור</button>
+  </div>
+</div>
+<div class="mo" id="mo-addtask">
+  <div class="mb">
+    <button class="mc" onclick="cm('mo-addtask')">✕</button>
+    <h3 id="tk-modal-title">הוסף משמרת / משימה</h3>
+    <div class="fg"><label>שם</label><input type="text" id="tk-name" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;direction:rtl;" placeholder="לדוגמה: משמרת ניקיון, אירוע מיוחד..."></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;">
+      <div class="fg"><label>תאריך</label><input type="date" id="tk-date" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;"></div>
+      <div class="fg"><label>שעות</label><input type="text" id="tk-hours" placeholder="08:00-16:00" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;direction:ltr;"></div>
+    </div>
+    <div class="fg"><label>הערה</label><input type="text" id="tk-note" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;" placeholder="הערה למשמרת..."></div>
+    <div class="fg"><label>מקסימום מתנדבים (0 = ללא הגבלה)</label><input type="number" id="tk-maxvol" min="0" max="50" value="0" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;text-align:center;"></div>
+    <div style="display:flex;gap:.6rem;">
+      <button class="bp" id="tk-save-btn" onclick="confirmAddTask()" style="flex:1;margin-top:0;">שמור</button>
+      <button onclick="cm('mo-addtask')" style="padding:9px 18px;border:1.5px solid #e0e0e0;border-radius:9px;background:white;cursor:pointer;font-size:13px;margin-top:0;">ביטול</button>
+    </div>
+  </div>
+</div>
+<div class="mo" id="mo-shiftmax">
+  <div class="mb" style="max-width:340px;text-align:center;">
+    <button class="mc" onclick="cm('mo-shiftmax')">✕</button>
+    <h3>פתיחת התנדבות למשמרת</h3>
+    <div class="fg" style="text-align:right;margin-top:.8rem;">
+      <label>מקסימום מתנדבים (0 = ללא הגבלה)</label>
+      <input type="number" id="sv-max-input" min="0" max="50" value="0" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;text-align:center;margin-top:4px;">
+    </div>
+    <div style="display:flex;gap:.6rem;justify-content:center;margin-top:.5rem;">
+      <button onclick="cm('mo-shiftmax')" style="padding:9px 20px;border:1.5px solid #e0e0e0;border-radius:8px;background:white;cursor:pointer;font-size:13px;">ביטול</button>
+      <button class="bp" onclick="confirmShiftVol()" style="margin-top:0;">פתח להתנדבות</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="mo-shiftnote">
+  <div class="mb">
+    <button class="mc" onclick="cm('mo-shiftnote')">✕</button>
+    <h3>הערה למשמרת</h3>
+    <div class="fg"><label>הערה</label><textarea id="sn-txt" class="note-inp" rows="3" placeholder="הערה כללית למשמרת..."></textarea></div>
+    <button class="bp" onclick="saveShiftNote()" style="width:100%;">שמור</button>
+  </div>
+</div>
+
+<div class="mo" id="mo-mgrblocks">
+  <div class="mb" style="max-width:580px;">
+    <button class="mc" onclick="cm('mo-mgrblocks')">✕</button>
+    <h3 id="mgrblk-title">עריכת חסימות</h3>
+    <div style="overflow-x:auto;">
+      <table id="mgrblk-table" style="width:100%;border-collapse:collapse;font-size:12px;"></table>
+    </div>
+    <div style="margin-top:.8rem;display:flex;gap:.6rem;justify-content:flex-end;">
+      <button onclick="cm('mo-mgrblocks')" style="padding:8px 18px;border:1.5px solid #e0e0e0;border-radius:8px;background:white;cursor:pointer;font-size:13px;">ביטול</button>
+      <button class="bp" onclick="saveMgrBlockEdit()" style="margin-top:0;">שמור שינויים</button>
+    </div>
+    <div class="sm" id="sm-mgrblk" style="text-align:center;margin-top:4px;">נשמר!</div>
+  </div>
+</div>
+<div class="mo" id="mo-vol">
+  <div class="mb">
+    <button class="mc" onclick="cm('mo-vol')">✕</button>
+    <h3>אישור התנדבויות</h3>
+    <div id="vol-list-modal"></div>
+  </div>
+</div>
+
+<div class="mo" id="mo-swap-req">
+  <div class="mb" style="max-width:400px;">
+    <button class="mc" onclick="cm('mo-swap-req')">✕</button>
+    <h3>בקשת החלפת משמרת</h3>
+    <div id="swap-req-info" style="background:var(--prll);border-radius:9px;padding:.8rem;margin-bottom:.8rem;font-size:13px;color:var(--prd);font-weight:600;"></div>
+    <div class="fg">
+      <label>בחר עובד להחלפה</label>
+      <select id="swap-emp-sel" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;-webkit-appearance:none;"></select>
+    </div>
+    <div class="fg">
+      <label>הסבר (אופציונלי)</label>
+      <input type="text" id="swap-note" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;" placeholder="סיבה להחלפה...">
+    </div>
+    <div style="display:flex;gap:.6rem;">
+      <button class="bp" onclick="confirmSwapReq()" style="flex:1;margin-top:0;">שלח בקשה</button>
+      <button onclick="cm('mo-swap-req')" style="padding:9px 18px;border:1.5px solid #e0e0e0;border-radius:9px;background:white;cursor:pointer;font-size:13px;">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="mo-swap-mgr">
+  <div class="mb" style="max-width:480px;">
+    <button class="mc" onclick="cm('mo-swap-mgr')">✕</button>
+    <h3>בקשות החלפה ממתינות</h3>
+    <div id="swap-mgr-list"></div>
+  </div>
+</div>
+
+<div class="mo" id="mo-notif">
+  <div class="mb" style="max-width:420px;padding:0;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#1e1b4b,#6d28d9);color:white;padding:1.2rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:16px;font-weight:800;">🔔 התראות</div>
+        <div id="notif-count-badge" style="font-size:11px;opacity:.8;margin-top:2px;"></div>
+      </div>
+      <button class="mc" onclick="cm('mo-notif')" style="background:rgba(255,255,255,.15);color:white;border:none;">✕</button>
+    </div>
+    <div id="notif-list" style="max-height:420px;overflow-y:auto;"></div>
+    <div style="padding:.8rem 1rem;border-top:1px solid #f3f4f6;">
+      <button onclick="clearNotifs()" style="width:100%;padding:9px;background:var(--prll);color:var(--pr);border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;">נקה הכל</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig={apiKey:"AIzaSyDyTN8H7FwyhA9wjsEH97fwJB2TGJgEfpA",authDomain:"work-system-73906.firebaseapp.com",databaseURL:"https://work-system-73906-default-rtdb.europe-west1.firebasedatabase.app",projectId:"work-system-73906",storageBucket:"work-system-73906.firebasestorage.app",messagingSenderId:"227399680422",appId:"1:227399680422:web:4911726e11a17572b40f67"};
+const DEF_EMPS=Array.from({length:10},(_,i)=>({id:'e'+(i+1),name:'עובד '+(i+1),pin:(''+(i+1)).padStart(4,'0'),type:i<5?'regular':'student',maxBlocks:i<5?3:5}));
+const DEF_MGR={pin:'9999'};
+const DEF_BS={allowMorning:true,allowEvening:true,allowNight:true,allowWeekend:true};
+const SHF=[{k:'morning',l:'בוקר',cls:'sc-m',bk:'sb-m'},{k:'evening',l:'ערב',cls:'sc-e',bk:'sb-e'},{k:'night',l:'לילה',cls:'sc-n',bk:'sb-n'}];
+const DAYS=['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+
+let db=null;try{firebase.initializeApp(firebaseConfig);db=firebase.database();}catch(e){}
+let CU=null,CR=null,CW=null,_ps=null,_we=null,_bs=null,_wemps=[];
+
+async function fg(p){const s=await db.ref(p).once('value');return s.exists()?s.val():null;}
+async function fs(p,v){await db.ref(p).set(v);}
+function sl(v){document.getElementById('lo').style.display=v?'flex':'none';}
+function ssm(id){const m=document.getElementById(id);if(m){m.classList.add('s');setTimeout(()=>m.classList.remove('s'),2500);}}
+function cm(id){document.getElementById(id).classList.remove('op');}
+function sun(d){const dt=new Date(d);dt.setDate(dt.getDate()-dt.getDay());return new Date(dt.setHours(0,0,0,0));}
+function wk(s){
+  const y=s.getFullYear();
+  const m=String(s.getMonth()+1).padStart(2,'0');
+  const d=String(s.getDate()).padStart(2,'0');
+  return 'w'+y+'-'+m+'-'+d;
+}
+function wds(s){return Array.from({length:7},(_,i)=>{const d=new Date(s);d.setDate(d.getDate()+i);return d;});}
+function fd(d){return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear().toString().slice(2);}
+function fw(s){
+  const e=new Date(s);e.setDate(e.getDate()+6);
+  return DAYS[s.getDay()]+' '+fd(s)+' — '+DAYS[e.getDay()]+' '+fd(e);
+}
+
+var _st=false,_bt=setInterval(function(){
+  if(_st||!db||!document.getElementById('ls'))return;
+  _st=true;clearInterval(_bt);
+  db.ref('sched/config').once('value').then(async function(sn){
+    const c=sn.val()||{};
+    if(!c.employees)await fs('sched/config/employees',DEF_EMPS);
+    if(!c.manager)  await fs('sched/config/manager',DEF_MGR);
+    if(!c.blockSettings)await fs('sched/config/blockSettings',DEF_BS);
+  }).then(async function(){
+    const e=await fg('sched/config/employees')||DEF_EMPS;
+    bls(e);sl(false);
+    document.getElementById('ls').style.display='flex';
+  }).catch(e=>{console.error(e);sl(false);});
+},200);
+
+function bls(emps){
+  const sel=document.getElementById('lu');sel.innerHTML='<option value="">-- בחר --</option>';
+  emps.forEach(e=>{const o=document.createElement('option');o.value=e.id;o.textContent=e.name+' ('+(e.type==='student'?'סטודנט':'עובד')+')';sel.appendChild(o);});
+  const m=document.createElement('option');m.value='mgr';m.textContent='מנהל';sel.appendChild(m);
+}
+document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+window.doLogin=async function(){
+  const uid=document.getElementById('lu').value,pin=document.getElementById('lp').value.trim(),err=document.getElementById('le');err.textContent='';
+  if(!uid){err.textContent='יש לבחור משתמש';return;}if(!pin){err.textContent='יש להזין קוד';return;}
+  sl(true);
+  try{
+    if(uid==='mgr'){
+      const m=await fg('sched/config/manager')||DEF_MGR;
+      if(pin!==m.pin){err.textContent='קוד שגוי';sl(false);return;}
+      CU={id:'mgr',name:'מנהל'};CR='mgr';await enterMgr();
+    }else{
+      const emps=await fg('sched/config/employees')||DEF_EMPS;
+      const emp=emps.find(e=>e.id===uid);
+      if(!emp||pin!==emp.pin){err.textContent='קוד שגוי';sl(false);return;}
+      CU=emp;CR='emp';await enterEmp();
+    }
+  }catch(e){err.textContent='שגיאת חיבור';}
+  sl(false);
+};
+window.doLogout=function(){
+  CU=null;CR=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('ls').style.display='flex';
+  document.getElementById('lp').value='';document.getElementById('le').textContent='';
+};
+
+async function enterEmp(){
+  document.getElementById('ls').style.display='none';document.getElementById('app').style.display='block';
+  document.getElementById('etabs').style.display='flex';document.getElementById('mtabs').style.display='none';
+  document.getElementById('hro').textContent=CU.type==='student'?'סטודנט':'עובד';
+  document.getElementById('hu').textContent=CU.name;
+  CW=sun(new Date());_bs=await fg('sched/config/blockSettings')||DEF_BS;
+  // Hide ALL mgr views
+  ['v-msched','v-mblocks','v-mtasks','v-mswaps','v-msettings'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.classList.remove('active');
+  });
+  eTab('blocks');
+  startNotifListener();
+  // Update swap badge
+  setTimeout(async()=>{
+    const w=wk(CW);
+    const swaps=await fg('sched/weeks/'+w+'/swaps')||{};
+    const pending=Object.values(swaps).filter(s=>(s.from===CU.id||s.to===CU.id)&&s.status==='pending').length;
+    const badge=document.getElementById('emp-swap-badge');
+    if(badge){badge.style.display=pending?'inline':'none';if(pending)badge.textContent=pending;}
+  },500);
+}
+async function enterMgr(){
+  document.getElementById('ls').style.display='none';document.getElementById('app').style.display='block';
+  document.getElementById('etabs').style.display='none';document.getElementById('mtabs').style.display='flex';
+  document.getElementById('hro').textContent='מנהל';document.getElementById('hu').textContent='מנהל';
+  CW=sun(new Date());_bs=await fg('sched/config/blockSettings')||DEF_BS;
+  // Hide ALL emp views
+  ['v-eblocks','v-evol','v-esched','v-eswaps'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.classList.remove('active');
+  });
+  mTab('sched');
+  startNotifListener();
+}
+
+function cw(d){const dt=new Date(CW);dt.setDate(dt.getDate()+d*7);CW=dt;
+  if(CR==='emp'){const a=document.querySelector('#etabs .tab.active');if(a){const t=a.getAttribute('onclick').match(/'(\w+)'/);if(t)eTab(t[1]);}}
+  else{const a=document.querySelector('#mtabs .tab.active');if(a){const t=a.getAttribute('onclick').match(/'(\w+)'/);if(t)mTab(t[1]);}}
+}
+
+window.eTab=function(tab){
+  document.querySelectorAll('#etabs .tab').forEach(t=>{
+    const tabName=t.getAttribute('onclick').match(/'(\w+)'/);
+    if(tabName)t.classList.toggle('active',tabName[1]===tab);
+  });
+  ['eblocks','evol','esched','eswaps'].forEach(v=>{
+    const el=document.getElementById('v-'+v);if(el)el.classList.toggle('active',v===('e'+tab)||v==='e'+tab);
+  });
+  document.getElementById('v-eblocks').classList.toggle('active',tab==='blocks');
+  document.getElementById('v-evol').classList.toggle('active',tab==='vol');
+  document.getElementById('v-esched').classList.toggle('active',tab==='sched');
+  document.getElementById('v-eswaps').classList.toggle('active',tab==='swaps');
+  if(tab==='blocks')rEmpBlocks();
+  else if(tab==='vol')rEmpVol();
+  else if(tab==='sched')rEmpSched();
+  else if(tab==='swaps')rEmpSwaps();
+};
+window.mTab=function(tab){
+  document.querySelectorAll('#mtabs .tab').forEach(t=>{
+    const m=t.getAttribute('onclick').match(/'(\w+)'/);if(m)t.classList.toggle('active',m[1]===tab);
+  });
+  ['msched','mblocks','mtasks','mswaps','msettings'].forEach(v=>{
+    const el=document.getElementById('v-'+v);if(el)el.classList.toggle('active','m'+tab===v);
+  });
+  if(tab==='sched')rMgrSched();
+  else if(tab==='blocks')rMgrBlocks();
+  else if(tab==='tasks')rMgrTasks();
+  else if(tab==='swaps')rMgrSwaps();
+  else rMgrSettings();
+};
+
+// ===== EMP BLOCKS =====
+async function rEmpBlocks(){
+  const w=wk(CW),dates=wds(CW);
+  document.getElementById('wt-eb').textContent=fw(CW);
+  if(!_bs)_bs=await fg('sched/config/blockSettings')||DEF_BS;
+  // Check if schedule is published - if so, lock blocks
+  const pub=await fg('sched/weeks/'+w+'/published');
+  const dlData=await fg('sched/weeks/'+w+'/deadline')||{};
+  const now=new Date(),past=pub||(dlData.time&&new Date(dlData.time)<now);
+  const badge=document.getElementById('dl-badge'),warn=document.getElementById('dl-warn');
+  if(pub){
+    badge.style.display='';
+    badge.textContent='🔒 הסידור פורסם — חסימות נעולות';
+    badge.className='dlb cl';
+    warn.innerHTML='🔒 הסידור לשבוע זה פורסם על ידי המנהל — לא ניתן לשנות חסימות';
+    warn.style.display='block';
+  } else if(dlData.time){
+    const dd=new Date(dlData.time);badge.style.display='';
+    badge.textContent=(past?'⛔ ':'✔ ')+'דד-ליין: '+dd.toLocaleDateString('he-IL')+' '+dd.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+    badge.className='dlb '+(past?'cl':'ok');warn.style.display=past?'block':'none';
+    warn.innerHTML=warn.innerHTML||'⛔ הדד-ליין עבר — לא ניתן לשנות חסימות';
+  }else{badge.style.display='none';warn.style.display='none';}
+  const myB=await fg('sched/weeks/'+w+'/blocks/'+CU.id)||{};
+  const myN=await fg('sched/weeks/'+w+'/notes/'+CU.id)||'';
+  document.getElementById('enote').value=myN;
+  const mb=CU.maxBlocks&&typeof CU.maxBlocks==='object'?CU.maxBlocks:{};
+  // Helper to get max for a shift+day
+  function getMax(shk,di){
+    const isWE=di>=5;
+    if(isWE){return mb['weekendMorning']!==undefined?(shk==='morning'?mb.weekendMorning:shk==='evening'?mb.weekendEvening:mb.weekendNight):(mb.morning||3);}
+    return mb['wdMorning']!==undefined?(shk==='morning'?mb.wdMorning:shk==='evening'?mb.wdEvening:mb.wdNight):(mb.morning||3);
+  }
+  // count per shift, split weekday/weekend
+  const wdCnt={morning:0,evening:0,night:0},weCnt={morning:0,evening:0,night:0};
+  for(let di=0;di<7;di++){const db2=myB['d'+di]||{};SHF.forEach(sh=>{if(db2[sh.k]){if(di>=5)weCnt[sh.k]++;else wdCnt[sh.k]++;}});}
+  const wdMax={morning:mb.wdMorning||3,evening:mb.wdEvening||3,night:mb.wdNight||3};
+  const weMax={morning:mb.weekendMorning||3,evening:mb.weekendEvening||3,night:mb.weekendNight||3};
+  document.getElementById('bc').innerHTML=
+    '<span style="font-size:10px;">📅 ב:'+wdCnt.morning+'/'+wdMax.morning+' ע:'+wdCnt.evening+'/'+wdMax.evening+' ל:'+wdCnt.night+'/'+wdMax.night+'</span>'+
+    '&nbsp;|&nbsp;<span style="font-size:10px;">🗓 ב:'+weCnt.morning+'/'+weMax.morning+' ע:'+weCnt.evening+'/'+weMax.evening+' ל:'+weCnt.night+'/'+weMax.night+'</span>';
+  const grid=document.getElementById('eb-grid');grid.innerHTML='';
+  dates.forEach((date,di)=>{
+    const isWE=di>=5,col=document.createElement('div');col.className='dc';
+    const hdr=document.createElement('div');hdr.className='dh'+(isWE?' we':'');
+    hdr.innerHTML='<div>'+DAYS[di]+'</div><div style="font-size:10px;font-weight:400;">'+fd(date)+'</div>';col.appendChild(hdr);
+    SHF.forEach(sh=>{
+      const isWknd=di>=5;
+      let key;
+      if(isWknd){key=sh.k==='morning'?'allowWeekendMorning':sh.k==='evening'?'allowWeekendEvening':'allowWeekendNight';}
+      else{key=sh.k==='morning'?'allowMorning':sh.k==='evening'?'allowEvening':'allowNight';}
+      const allowed=_bs[key]!==false;
+      const blocked=myB['d'+di]&&myB['d'+di][sh.k];
+      const cell=document.createElement('div');
+      if(!allowed||past){
+        cell.className='sc sc-lk';
+        cell.textContent=pub&&allowed?'🔒':allowed?sh.l:'—';
+        cell.title=pub?'הסידור פורסם':'';
+      }
+      else{
+        cell.className='sc '+(blocked?'sc-bl':sh.cls);cell.textContent=blocked?'✕':sh.l;
+        cell.onclick=async()=>{
+          if(past){alert(pub?'הסידור פורסם — לא ניתן לשנות חסימות':'עבר הדד-ליין לחסימות');return;}
+          if(blocked){await db.ref('sched/weeks/'+w+'/blocks/'+CU.id+'/d'+di+'/'+sh.k).set(false);await rEmpBlocks();return;}
+          const isWE2=di>=5;
+          const curCnt=isWE2?weCnt[sh.k]:wdCnt[sh.k];
+          const curMax=isWE2?weMax[sh.k]:wdMax[sh.k];
+          if(curCnt>=curMax){alert('הגעת למקסימום '+curMax+' חסימות למשמרת '+sh.l+(isWE2?' בסופ"ש':' בימים רגילים'));return;}
+          sl(true);await db.ref('sched/weeks/'+w+'/blocks/'+CU.id+'/d'+di+'/'+sh.k).set(true);sl(false);await rEmpBlocks();
+        };
+      }
+      col.appendChild(cell);
+    });
+    grid.appendChild(col);
+  });
+}
+window.saveBlocks=async function(){
+  const w=wk(CW);
+  const pub2=await fg('sched/weeks/'+w+'/published');
+  if(pub2){alert('הסידור פורסם — לא ניתן לשנות חסימות');return;}
+  const note=document.getElementById('enote').value.trim();
+  await fs('sched/weeks/'+w+'/notes/'+CU.id,note);
+  await sendNotifTo('manager','block','🔒 עובד עדכן חסימות',CU.name+' עדכן חסימות לשבוע '+fw(CW),w);
+  ssm('sm-blocks');
+};
+
+// ===== EMP VOLUNTEER =====
+async function rEmpVol(){
+  const w=wk(CW),dates=wds(CW);
+  document.getElementById('wt-ev').textContent=fw(CW);
+  const pubStatus=await fg('sched/weeks/'+w+'/published');
+  const grid=document.getElementById('vol-grid');grid.innerHTML='';
+  if(!pubStatus){
+    const msg=document.createElement('div');
+    msg.innerHTML='<div style="text-align:center;padding:3rem 1.5rem;">'+
+      '<div style="font-size:40px;margin-bottom:.8rem;">🔒</div>'+
+      '<div style="font-size:16px;font-weight:800;color:#1e1b4b;margin-bottom:.4rem;">אפשרות ההתנדבות תיפתח לאחר פרסום הסידור</div>'+
+      '<div style="font-size:13px;color:#9ca3af;">המנהל יפרסם את הסידור ואז תוכל להתנדב למשמרות ומשימות</div>'+
+      '</div>';
+    grid.appendChild(msg);return;
+  }
+  const sched=await fg('sched/weeks/'+w+'/schedule')||{};
+  const vols=await fg('sched/weeks/'+w+'/volunteers')||{};
+  const taskData=await fg('sched/weeks/'+w+'/tasks')||{};
+  // Show MY current volunteerings first
+  const myVols=[];
+  for(let di=0;di<7;di++){
+    SHF.forEach(sh=>{
+      const v=vols['d'+di]&&vols['d'+di][sh.k]&&vols['d'+di][sh.k][CU.id];
+      if(v)myVols.push({di,sh,date:dates[di]});
+    });
+  }
+  if(myVols.length){
+    const myVolHdr=document.createElement('div');
+    myVolHdr.style.cssText='font-size:12px;font-weight:700;color:var(--prd);margin-bottom:.5rem;padding:.4rem .7rem;background:var(--prll);border-radius:7px;';
+    myVolHdr.textContent='✋ ההתנדבויות שלי השבוע';
+    grid.appendChild(myVolHdr);
+    myVols.forEach(({di,sh,date})=>{
+      const chip=document.createElement('div');
+      chip.style.cssText='display:inline-flex;align-items:center;gap:6px;background:#fef9c3;border:1px solid #d97706;border-radius:7px;padding:4px 10px;margin:2px;font-size:11px;font-weight:600;color:#713f12;';
+      chip.innerHTML='✋ '+DAYS[di]+' '+fd(date)+' — '+sh.l+
+        ' <button onclick="toggleVol(\''+w+'\','+di+',\''+sh.k+'\')" style="background:none;border:none;color:#991b1b;cursor:pointer;font-size:13px;padding:0;line-height:1;">×</button>';
+      grid.appendChild(chip);
+    });
+    const sep=document.createElement('div');sep.style.cssText='margin:.7rem 0;border-top:1px solid var(--prl);';
+    grid.appendChild(sep);
+  }
+  // My task volunteerings
+  // Only show approved task assignments after publish; still show pending vols
+  const myTaskVols=Object.entries(taskData).filter(([,t])=>
+    (pubStatus&&t.emps&&t.emps.includes(CU.id))||  // approved only after publish
+    (t.pendingVols&&t.pendingVols.includes(CU.id))  // always show pending
+  );
+  if(myTaskVols.length){
+    const mth=document.createElement('div');
+    mth.style.cssText='font-size:12px;font-weight:700;color:var(--prd);margin-bottom:.4rem;';
+    mth.textContent='📋 משימות שנרשמת אליהן:';grid.appendChild(mth);
+    myTaskVols.forEach(([tid,task])=>{
+      const r=document.createElement('div');
+      r.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #d97706;border-radius:7px;margin-bottom:4px;background:#fef9c3;';
+      const isApproved=pubStatus&&task.emps&&task.emps.includes(CU.id);
+      const isPending=task.pendingVols&&task.pendingVols.includes(CU.id);
+      // Only show if pending (always) or approved+published
+      if(!isApproved&&!isPending)return;
+      r.innerHTML='<div style="flex:1;"><div style="font-size:12px;font-weight:600;">📋 '+task.name+'</div>'+
+        (task.date?'<div style="font-size:10px;color:#888;">📅 '+task.date+'</div>':'')+
+        (task.hours?'<div style="font-size:10px;color:#888;">🕐 '+task.hours+'</div>':'')+
+        '</div>'+
+        (isApproved?'<span style="font-size:10px;color:#166534;font-weight:600;background:#dcfce7;padding:2px 7px;border-radius:8px;">✔ מאושר</span>':
+         isPending?'<span style="font-size:10px;color:#713f12;font-weight:600;background:#fef9c3;padding:2px 7px;border-radius:8px;">✋ ממתין לאישור</span>':'');
+      grid.appendChild(r);
+    });
+    const sep2=document.createElement('div');sep2.style.cssText='margin:.6rem 0;border-top:1px solid var(--prl);';
+    grid.appendChild(sep2);
+  }
+
+  // Show open tasks for volunteering
+  const openTasks=Object.entries(taskData).filter(([,t])=>t.volOpen&&!(t.emps&&t.emps.includes(CU.id))&&!(t.pendingVols&&t.pendingVols.includes(CU.id)));
+  if(openTasks.length){
+    const th=document.createElement('div');
+    th.style.cssText='font-size:12px;font-weight:700;color:var(--prd);margin-bottom:.5rem;padding-bottom:.3rem;border-bottom:1px solid var(--prl);';
+    th.textContent='📋 משימות פתוחות להתנדבות';grid.appendChild(th);
+    openTasks.forEach(([tid,task])=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--prl);border-radius:8px;margin-bottom:5px;background:var(--prll);';
+      const maxV=task.maxVol||0;
+      const totalV=(task.emps||[]).length+(task.pendingVols||[]).length;
+      const isFull=maxV>0&&totalV>=maxV;
+      row.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 14px;border:1.5px solid '+(isFull?'#fca5a5':'#c4b5fd')+';border-radius:10px;margin-bottom:7px;background:'+(isFull?'#fff1f1':'var(--prll)')+';';
+      row.innerHTML='<div style="flex:1;">'+
+          '<div style="font-size:13px;font-weight:700;color:var(--prd);">📋 '+task.name+'</div>'+
+          (task.date?'<div style="font-size:11px;color:#888;margin-top:2px;">📅 '+task.date+'</div>':'')+
+          (task.hours?'<div style="font-size:11px;color:#888;">🕐 '+task.hours+'</div>':'')+
+          (task.note?'<div style="font-size:11px;color:#888;">📝 '+task.note+'</div>':'')+
+          (maxV?'<div style="font-size:10px;color:#888;margin-top:2px;">'+totalV+'/'+maxV+' מתנדבים</div>':'')+
+        '</div>'+
+        (isFull?'<span style="background:#fee2e2;color:#991b1b;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;">נתפס</span>':
+        '<button onclick="volTask(\''+w+'\',\''+tid+'\')" style="background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;">✋ התנדב</button>');
+      grid.appendChild(row);
+    });
+  }
+  // Show open shifts as simple cards (no table)
+  let hasOpenShifts=false;
+  const shiftSection=document.createElement('div');
+  let hasShiftCards=false;
+  const dates2=dates; // already have dates
+  for(let di=0;di<7;di++){
+    SHF.forEach(sh=>{
+      const assigned=(sched['d'+di]&&sched['d'+di][sh.k])||[];
+      const volOpen=vols['d'+di]&&vols['d'+di][sh.k]&&vols['d'+di][sh.k]['__open'];
+      if(!volOpen)return;
+      hasOpenShifts=true;
+      const myVol=vols['d'+di]&&vols['d'+di][sh.k]&&vols['d'+di][sh.k][CU.id];
+      const alreadyIn=assigned.includes(CU.id);
+      // Check maxVol for this shift
+      const shMaxVol=vols['d'+di]&&vols['d'+di][sh.k]&&vols['d'+di][sh.k]['__maxVol']||0;
+      // Count approved volunteers (those in the schedule assigned array who volunteered)
+      const shiftVolIds=vols['d'+di]&&vols['d'+di][sh.k]?
+        Object.keys(vols['d'+di][sh.k]).filter(k=>k!=='__open'&&k!=='__maxVol'&&vols['d'+di][sh.k][k]):[];
+      // "Full" = maxVol set and approved count >= maxVol (approved = in assigned)
+      const approvedVolCount=shiftVolIds.filter(id=>assigned.includes(id)).length;
+      const isFull=shMaxVol>0&&approvedVolCount>=shMaxVol&&!myVol&&!alreadyIn;
+      const card=document.createElement('div');
+      const borderColor=isFull?'#fca5a5':myVol?'#d97706':alreadyIn?'#86efac':'#c4b5fd';
+      const bgColor=isFull?'#fff1f1':alreadyIn?'#dcfce7':myVol?'#fef9c3':'var(--prll)';
+      card.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 16px;border:2px solid '+borderColor+';border-radius:12px;margin-bottom:8px;background:'+bgColor+';';
+      card.innerHTML='<div style="flex:1;">'+
+        '<div style="font-size:14px;font-weight:700;color:var(--prd);">'+sh.l+' — '+DAYS[di]+' '+fd(dates2[di])+'</div>'+
+        (shMaxVol?'<div style="font-size:11px;color:#888;margin-top:1px;">'+approvedVolCount+'/'+shMaxVol+' מאושרים</div>':'')+
+        (alreadyIn?'<div style="font-size:12px;color:#166534;margin-top:3px;">✔ אתה כבר משובץ</div>':
+         isFull?'<div style="font-size:12px;color:#991b1b;font-weight:700;margin-top:3px;">❌ ההתנדבות מלאה</div>':
+         myVol?'<div style="font-size:12px;color:#713f12;margin-top:3px;">✋ ממתין לאישור — לחץ לביטול</div>':
+         '<div style="font-size:12px;color:var(--pr);margin-top:3px;">לחץ להתנדב</div>')+
+        '</div>'+
+        (isFull?'<span style="background:#fee2e2;color:#991b1b;border-radius:9px;padding:8px 16px;font-size:13px;font-weight:700;">נתפס</span>':
+         !alreadyIn?'<button onclick="toggleVol(\''+w+'\','+di+',\''+sh.k+'\')" style="background:'+(myVol?'#fee2e2':'var(--prl)')+';color:'+(myVol?'#991b1b':'var(--pr)')+';border:none;border-radius:9px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">'+(myVol?'✕ בטל':'✋ התנדב')+'</button>':'');
+      shiftSection.appendChild(card);
+      hasShiftCards=true;
+    });
+  }
+  if(hasShiftCards){
+    const shHdr=document.createElement('div');
+    shHdr.style.cssText='font-size:12px;font-weight:700;color:var(--prd);margin-bottom:.5rem;padding:.4rem .7rem;background:var(--prll);border-radius:7px;';
+    shHdr.textContent='🕐 משמרות פתוחות להתנדבות';
+    grid.insertBefore(shHdr,grid.firstChild);
+    const sep=document.createElement('div');sep.style.cssText='margin:.7rem 0;border-top:1px solid var(--prl);';
+    shiftSection.appendChild(sep);
+    grid.appendChild(shiftSection);
+  }
+  const filteredTaskVols=myTaskVols.filter(([,t])=>
+    (pubStatus&&t.emps&&t.emps.includes(CU.id))||(t.pendingVols&&t.pendingVols.includes(CU.id))
+  );
+  if(!hasOpenShifts&&!openTasks.length&&!myVols.length&&!filteredTaskVols.length){
+    const msg=document.createElement('div');
+    msg.style.cssText='text-align:center;color:#9ca3af;font-size:14px;padding:2.5rem 1rem;';
+    msg.innerHTML='<div style="font-size:40px;margin-bottom:.8rem;">📭</div>'+
+      '<div style="font-weight:700;color:#1e1b4b;margin-bottom:.3rem;">אין התנדבויות פתוחות</div>'+
+      '<div>המנהל טרם פתח אפשרות התנדבות לשבוע זה</div>';
+    grid.innerHTML='';grid.appendChild(msg);
+  }
+}
+
+// ===== EMP SCHEDULE =====
+async function rEmpSched(){
+  const w=wk(CW);
+  document.getElementById('wt-es').textContent=fw(CW);
+  const pub=await fg('sched/weeks/'+w+'/published');
+  const container=document.getElementById('esched-content');
+  if(!pub){
+    container.innerHTML=
+      '<div class="card" style="text-align:center;padding:3rem 2rem;">'+
+      '<div style="font-size:48px;margin-bottom:1rem;">📋</div>'+
+      '<div style="font-size:18px;font-weight:800;color:#1e1b4b;margin-bottom:.4rem;">הסידור טרם פורסם</div>'+
+      '<div style="font-size:14px;color:#9ca3af;">המנהל טרם פרסם את הסידור לשבוע זה</div></div>';
+    return;
+  }
+  const sched=await fg('sched/weeks/'+w+'/schedule')||{};
+  const tasks=await fg('sched/weeks/'+w+'/tasks')||{};
+  const notes=await fg('sched/weeks/'+w+'/shiftNotes')||{};
+  const allEmps2=await fg('sched/config/employees')||DEF_EMPS;
+  const dates=wds(CW);
+
+  // Build styled schedule table
+  const SH_COLORS={
+    morning:{bg:'#fffbeb',border:'#f59e0b',light:'#fef3c7',text:'#92400e',label:'🌅 בוקר'},
+    evening:{bg:'#eff6ff',border:'#3b82f6',light:'#dbeafe',text:'#1e40af',label:'🌆 ערב'},
+    night:  {bg:'#f5f3ff',border:'#7c3aed',light:'#ede9fe',text:'#4c1d95',label:'🌙 לילה'},
+  };
+
+  let html='<div style="overflow-x:auto;border-radius:14px;box-shadow:0 2px 12px rgba(109,40,217,.1);">';
+  html+='<table style="width:100%;border-collapse:collapse;min-width:620px;background:white;border-radius:14px;overflow:hidden;">';
+
+  // Header
+  html+='<thead><tr>';
+  html+='<th style="padding:14px 12px;text-align:right;font-size:12px;font-weight:700;color:#6b7280;background:#f9fafb;border-bottom:2px solid #e5e7eb;width:80px;">משמרת</th>';
+  dates.forEach((date,di)=>{
+    const isWE=di>=5;
+    const isToday=new Date().toDateString()===date.toDateString();
+    html+='<th style="padding:12px 8px;text-align:center;background:'+(isToday?'#f5f3ff':'#f9fafb')+';border-bottom:2px solid '+(isToday?'var(--pr)':'#e5e7eb')+';border-right:1px solid #f3f4f6;">'+
+      '<div style="font-size:12px;font-weight:800;color:'+(isWE?'var(--pr)':'#1e1b4b')+';">'+DAYS[di]+'</div>'+
+      '<div style="font-size:11px;color:#9ca3af;margin-top:1px;">'+fd(date)+'</div>'+
+      (isToday?'<div style="width:6px;height:6px;background:var(--pr);border-radius:50%;margin:3px auto 0;"></div>':'')+
+    '</th>';
+  });
+  html+='</tr></thead><tbody>';
+
+  SHF.forEach((sh,shi)=>{
+    const c=SH_COLORS[sh.k]||SH_COLORS.morning;
+    html+='<tr style="border-bottom:1px solid #f3f4f6;">';
+    html+='<td style="padding:12px;background:'+c.light+';border-right:3px solid '+c.border+';white-space:nowrap;">'+
+      '<div style="font-size:11px;font-weight:800;color:'+c.text+';">'+c.label+'</div>'+
+    '</td>';
+    dates.forEach((date,di)=>{
+      const assigned=(sched['d'+di]&&sched['d'+di][sh.k])||[];
+      const sn=notes['d'+di]&&notes['d'+di][sh.k];
+      const isToday=new Date().toDateString()===date.toDateString();
+      html+='<td style="padding:8px 6px;vertical-align:top;background:'+(isToday?'#faf5ff':'white')+';border-right:1px solid #f3f4f6;min-width:85px;">';
+      if(!assigned.length){
+        html+='<div style="color:#e5e7eb;font-size:11px;text-align:center;padding:8px 0;">—</div>';
+      } else {
+        assigned.forEach(id=>{
+          const e=allEmps2.find(x=>x.id===id);
+          const isMe=id===CU.id;
+          html+='<div style="padding:5px 8px;border-radius:8px;margin-bottom:3px;font-size:11px;'+
+            (isMe?'background:linear-gradient(135deg,var(--pr),var(--prm));color:white;font-weight:700;box-shadow:0 2px 6px rgba(109,40,217,.3);':
+                  'background:#f9fafb;color:#374151;border:1px solid #e5e7eb;')+
+            '">'+
+            (e?e.name:'?')+(isMe?' ★':'')+
+          '</div>';
+        });
+      }
+      if(sn)html+='<div style="font-size:10px;color:#9ca3af;margin-top:2px;padding:2px 4px;background:#f9fafb;border-radius:4px;">📝 '+sn+'</div>';
+      html+='</td>';
+    });
+    html+='</tr>';
+  });
+
+  // Tasks row
+  const allDayTasks=dates.map((date,di)=>{
+    const ddStr=date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+    return Object.values(tasks||{}).filter(t=>(t.date===ddStr||t.day==di)&&t.emps&&t.emps.length);
+  });
+  const hasTasks=allDayTasks.some(d=>d.length>0);
+  if(hasTasks){
+    html+='<tr style="border-top:2px solid #fef3c7;">';
+    html+='<td style="padding:12px;background:#fef3c7;border-right:3px solid #f59e0b;white-space:nowrap;">'+
+      '<div style="font-size:11px;font-weight:800;color:#92400e;">📋 משימות</div></td>';
+    allDayTasks.forEach((dayTasks,di)=>{
+      const isToday=new Date().toDateString()===dates[di].toDateString();
+      html+='<td style="padding:6px;vertical-align:top;background:'+(isToday?'#fffdf0':'white')+';border-right:1px solid #f3f4f6;">';
+      dayTasks.forEach(t=>{
+        const approvedNames=(t.emps||[]).map(id=>{const e=allEmps2.find(x=>x.id===id);return e?e.name:'';}).filter(Boolean);
+        const isMyTask=(t.emps||[]).includes(CU.id);
+        html+='<div style="border-radius:8px;padding:5px 7px;margin-bottom:3px;font-size:10px;'+
+          (isMyTask?'background:#fbbf24;color:#1e1b4b;font-weight:700;':'background:#fef3c7;color:#92400e;border:1px solid #fcd34d;')+
+          '"><div style="font-weight:700;">'+t.name+'</div>'+
+          (t.hours?'<div style="opacity:.8;">'+t.hours+'</div>':'')+
+          '<div style="opacity:.7;margin-top:1px;">'+approvedNames.join(', ')+'</div>'+
+        '</div>';
+      });
+      if(!dayTasks.length)html+='<div style="color:#e5e7eb;font-size:10px;text-align:center;padding:8px 0;">—</div>';
+      html+='</td>';
+    });
+    html+='</tr>';
+  }
+  html+='</tbody></table></div>';
+  container.innerHTML=html;
+}
+
+
+async function rMgrSched(){
+  const w=wk(CW);
+  document.getElementById('wt-ms').textContent=fw(CW);
+  const pub=await fg('sched/weeks/'+w+'/published');
+  const volOpen=await fg('sched/weeks/'+w+'/volunteerOpen');
+  const volBtn=document.getElementById('vol-btn');
+  if(volBtn){
+    volBtn.textContent=volOpen?'✋ סגור התנדבות':'✋ פתח התנדבות';
+    volBtn.style.background=volOpen?'#dcfce7':'var(--prl)';
+    volBtn.style.color=volOpen?'#166534':'var(--pr)';
+  }
+  const pubBanner=document.getElementById('pub-banner');
+  const pubBtn=document.getElementById('pub-btn');
+  if(pub){
+    pubBanner.style.display='block';pubBanner.textContent='✔ הסידור פורסם לעובדים';
+    pubBtn.style.background='#fee2e2';pubBtn.style.color='#991b1b';pubBtn.style.borderColor='#fca5a5';pubBtn.textContent='↩ בטל פרסום';
+  }else{
+    pubBanner.style.display='none';
+    pubBtn.style.background='#dcfce7';pubBtn.style.color='#166534';pubBtn.style.borderColor='#86efac';pubBtn.textContent='✔ פרסם';
+  }
+  const sched=await fg('sched/weeks/'+w+'/schedule')||{};
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  const blocks=await fg('sched/weeks/'+w+'/blocks')||{};
+  const vols=await fg('sched/weeks/'+w+'/volunteers')||{};
+  const notes=await fg('sched/weeks/'+w+'/shiftNotes')||{};
+  const tasks=await fg('sched/weeks/'+w+'/tasks')||{};
+  const empNotes=await fg('sched/weeks/'+w+'/empNotes')||{};
+  const dates=wds(CW);
+  const grid=document.getElementById('msched-grid');grid.innerHTML='';
+  dates.forEach((date,di)=>{
+    const isWE=di>=5,col=document.createElement('div');col.className='sd';
+    const isToday2=new Date().toDateString()===date.toDateString();
+    col.innerHTML='<div class="sdh'+(isWE?' we':'')+(isToday2?' today':'')+
+      '" style="font-size:13px;'+(isToday2?'border-bottom:2px solid var(--pr);color:var(--pr);':'')+'">'+
+      DAYS[di]+'<br><span style="font-size:11px;font-weight:400;">'+fd(date)+'</span>'+
+      (isToday2?'<div style="width:6px;height:6px;background:var(--pr);border-radius:50%;margin:3px auto -2px;"></div>':'')+
+      '</div>';
+    SHF.forEach(sh=>{
+      const assigned=(sched['d'+di]&&sched['d'+di][sh.k])||[];
+      const dayVols=vols['d'+di]&&vols['d'+di][sh.k]?Object.keys(vols['d'+di][sh.k]).filter(id=>id!=='__open'&&vols['d'+di][sh.k][id]):[];
+      const shNote=notes['d'+di]&&notes['d'+di][sh.k];
+      const sb=document.createElement('div');sb.className='sb '+sh.bk;
+      const volIsOpen=vols&&vols['d'+di]&&vols['d'+di][sh.k]&&vols['d'+di][sh.k]['__open'];
+      const volBtnStyle='font-size:8px;border:none;border-radius:3px;padding:1px 4px;cursor:pointer;';
+      let inner='<div class="sl" style="display:flex;align-items:center;gap:2px;">'+
+        '<span style="flex:1;">'+sh.l+'</span>'+
+        '<button onclick="toggleShiftVol(\''+w+'\','+di+',\''+sh.k+'\')" style="'+volBtnStyle+'background:'+(volIsOpen?'#dcfce7':'var(--prl)')+';color:'+(volIsOpen?'#166534':'var(--pr)')+';">✋'+(volIsOpen?'✓':'')+'</button>'+
+        '<button onclick="openShiftNote(\''+w+'\','+di+',\''+sh.k+'\')" style="'+volBtnStyle+'background:var(--prl);color:var(--pr);">📝</button>'+
+        '</div>';
+      if(shNote)inner+='<div class="note-badge" style="margin-bottom:2px;max-width:100%;">'+shNote+'</div>';
+      assigned.forEach(empId=>{
+        const emp=emps.find(e=>e.id===empId);if(!emp)return;
+        const isBlocked=blocks[empId]&&blocks[empId]['d'+di]&&blocks[empId]['d'+di][sh.k];
+        const en=empNotes[w]&&empNotes[w][di]&&empNotes[w][di][sh.k]&&empNotes[w][di][sh.k][empId];
+        inner+='<div class="se"><span style="color:'+(isBlocked?'#e53e3e':'#1e1b4b')+';flex:1;">'+(isBlocked?'⚠ ':'')+emp.name+'</span>'+
+          '<div style="display:flex;gap:2px;align-items:center;">'+
+          '<button onclick="openEmpNote(\''+w+'\','+di+',\''+sh.k+'\',\''+empId+'\')" style="font-size:8px;background:var(--prl);color:var(--pr);border:none;border-radius:3px;padding:1px 3px;cursor:pointer;">📝</button>'+
+          '<button class="rb" onclick="remEmp(\''+w+'\','+di+',\''+sh.k+'\',\''+empId+'\')">×</button>'+
+          '</div>'+
+          (en?'<div style="width:100%;"><span class="note-badge">'+en+'</span></div>':'')+
+          '</div>';
+      });
+      // volunteers pending
+      const pendingVols=dayVols.filter(id=>id!=='__open'&&!assigned.includes(id));
+      if(pendingVols.length){
+        inner+='<div onclick="openVolModal(\''+w+'\','+di+',\''+sh.k+'\')" style="cursor:pointer;margin-top:2px;background:#dcfce7;border-radius:4px;padding:2px 5px;font-size:9px;color:#166534;font-weight:600;">✋ '+pendingVols.length+' מתנדבים</div>';
+      }
+      inner+='<button class="ab" onclick="openAddEmpModal(\''+w+'\','+di+',\''+sh.k+'\')">+ הוסף עובד</button>';
+      sb.innerHTML=inner;col.appendChild(sb);
+    });
+    // Show tasks for this day in mgr schedule
+    const dayStr3=date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+    Object.entries(tasks||{}).filter(([,t])=>t.date===dayStr3||t.day==di).forEach(([tid,t])=>{
+      const tb=document.createElement('div');
+      tb.style.cssText='background:#fef9c3;border-right:3px solid #d97706;border-radius:6px;padding:.3rem .5rem;margin-bottom:.25rem;font-size:9px;';
+      const pendCount=(t.pendingVols||[]).length;
+      const approvedCount=(t.emps||[]).length;
+      const approvedNames=(t.emps||[]).map(id=>{const e=emps.find(x=>x.id===id);return e?e.name:'';}).filter(Boolean);
+      tb.innerHTML='<div style="font-weight:700;color:#713f12;display:flex;align-items:center;justify-content:space-between;">'+
+        '<span>📋 '+t.name+'</span>'+
+        '<span style="display:flex;gap:3px;">'+
+        (pendCount?'<span style="background:#fef9c3;border:1px solid #d97706;border-radius:4px;padding:1px 4px;cursor:pointer;" onclick="mTab(\'tasks\')">✋'+pendCount+'</span>':'')+'</span>'+
+        '</div>'+
+        (t.hours?'<div style="color:#888;">🕐 '+t.hours+'</div>':'')+
+        (approvedNames.length?'<div style="color:#166534;font-size:8px;">✔ '+approvedNames.join(', ')+'</div>':'');
+      col.appendChild(tb);
+    });
+    grid.appendChild(col);
+  });
+}
+
+let _pendShift=null;
+function openAddEmpModal(w,di,shk){
+  _pendShift={w,di,shk};
+  fg('sched/config/employees').then(emps=>{
+    emps=emps||DEF_EMPS;
+    fg('sched/weeks/'+w+'/schedule').then(sched=>{
+      const assigned=(sched&&sched['d'+di]&&sched['d'+di][shk])||[];
+      const sel=document.getElementById('mo-esel');sel.innerHTML='';
+      fg('sched/weeks/'+w+'/blocks').then(blocks=>{
+        emps.filter(e=>!assigned.includes(e.id)).forEach(e=>{
+          const isB=blocks&&blocks[e.id]&&blocks[e.id]['d'+di]&&blocks[e.id]['d'+di][shk];
+          const o=document.createElement('option');o.value=e.id;
+          o.textContent=e.name+(e.type==='student'?' (סטודנט)':'')+(isB?' ⚠ חסום':'');
+          sel.appendChild(o);
+        });
+        document.getElementById('mo-enote').value='';
+        document.getElementById('mo-addemp').classList.add('op');
+      });
+    });
+  });
+}
+window.confirmAddEmp=async function(){
+  if(!_pendShift)return;
+  const {w,di,shk}=_pendShift;
+  const empId=document.getElementById('mo-esel').value;
+  const note=document.getElementById('mo-enote').value.trim();
+  if(!empId)return;
+  const cur=await fg('sched/weeks/'+w+'/schedule/d'+di+'/'+shk)||[];
+  sl(true);
+  await fs('sched/weeks/'+w+'/schedule/d'+di+'/'+shk,[...cur,empId]);
+  if(note)await fs('sched/weeks/'+w+'/empNotes/'+w+'/'+di+'/'+shk+'/'+empId,note);
+  sl(false);cm('mo-addemp');rMgrSched();
+};
+window.remEmp=async function(w,di,shk,empId){
+  const cur=await fg('sched/weeks/'+w+'/schedule/d'+di+'/'+shk)||[];
+  sl(true);await fs('sched/weeks/'+w+'/schedule/d'+di+'/'+shk,cur.filter(e=>e!==empId));sl(false);rMgrSched();
+};
+
+let _pendShiftNote=null;
+window.openShiftNote=async function(w,di,shk){
+  _pendShiftNote={w,di,shk};
+  const note=await fg('sched/weeks/'+w+'/shiftNotes/d'+di+'/'+shk)||'';
+  document.getElementById('sn-txt').value=note;
+  document.getElementById('mo-shiftnote').classList.add('op');
+};
+window.saveShiftNote=async function(){
+  if(!_pendShiftNote)return;
+  const {w,di,shk}=_pendShiftNote;
+  const txt=document.getElementById('sn-txt').value.trim();
+  sl(true);await fs('sched/weeks/'+w+'/shiftNotes/d'+di+'/'+shk,txt);sl(false);
+  cm('mo-shiftnote');rMgrSched();
+};
+
+let _pendEmpNote=null;
+window.openEmpNote=async function(w,di,shk,empId){
+  _pendEmpNote={w,di,shk,empId};
+  const note=await fg('sched/weeks/'+w+'/empNotes/'+w+'/'+di+'/'+shk+'/'+empId)||'';
+  const txt=prompt('הערה לעובד:',note);
+  if(txt===null)return;
+  sl(true);await fs('sched/weeks/'+w+'/empNotes/'+w+'/'+di+'/'+shk+'/'+empId,txt);sl(false);
+  rMgrSched();
+};
+
+window.openVolModal=async function(w,di,shk){
+  const vols=await fg('sched/weeks/'+w+'/volunteers/d'+di+'/'+shk)||{};
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  const sched=await fg('sched/weeks/'+w+'/schedule/d'+di+'/'+shk)||[];
+  const pending=Object.keys(vols).filter(id=>id!=='__open'&&vols[id]&&!sched.includes(id));
+  const sh=SHF.find(s=>s.k===shk);
+  const list=document.getElementById('vol-list-modal');list.innerHTML='';
+  if(!pending.length){list.innerHTML='<p style="color:#888;font-size:13px;">אין התנדבויות ממתינות</p>';document.getElementById('mo-vol').classList.add('op');return;}
+  pending.forEach(empId=>{
+    const emp=emps.find(e=>e.id===empId);if(!emp)return;
+    const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--prl);border-radius:8px;margin-bottom:6px;';
+    row.innerHTML='<span style="flex:1;font-size:13px;font-weight:600;">'+emp.name+'</span>'+
+      '<button onclick="approveVol(\''+w+'\','+di+',\''+shk+'\',\''+empId+'\')" style="background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;">✔ אשר</button>'+
+      '<button onclick="rejectVol(\''+w+'\','+di+',\''+shk+'\',\''+empId+'\')" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;">✕ דחה</button>';
+    list.appendChild(row);
+  });
+  document.getElementById('mo-vol').classList.add('op');
+};
+window.approveVol=async function(w,di,shk,empId){
+  const cur=await fg('sched/weeks/'+w+'/schedule/d'+di+'/'+shk)||[];
+  sl(true);
+  await fs('sched/weeks/'+w+'/schedule/d'+di+'/'+shk,[...cur,empId]);
+  await db.ref('sched/weeks/'+w+'/volunteers/d'+di+'/'+shk+'/'+empId).remove();
+  const sh=SHF.find(s=>s.k===shk);
+  await sendNotifTo(empId,'vol_approved','✔ התנדבות אושרה! 🎉','שובצת למשמרת '+sh.l+' ביום '+DAYS[di]+'. תופיע בסידור.',w);
+  sl(false);cm('mo-vol');rMgrSched();
+};
+window.rejectVol=async function(w,di,shk,empId){
+  sl(true);
+  await db.ref('sched/weeks/'+w+'/volunteers/d'+di+'/'+shk+'/'+empId).remove();
+  const sh=SHF.find(s=>s.k===shk);
+  await sendNotifTo(empId,'swap_rej','✕ בקשת ההתנדבות נדחתה','המנהל דחה את בקשתך למשמרת '+sh.l+' ביום '+DAYS[di],w);
+  sl(false);cm('mo-vol');rMgrSched();
+};
+
+window.autoAssign=async function(){
+  if(!confirm('שיבוץ אוטומטי ייצור סידור חדש לפי חסימות. להמשיך?'))return;
+  const w=wk(CW);
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  const blocks=await fg('sched/weeks/'+w+'/blocks')||{};
+  const newS={};let idx=0;
+  wds(CW).forEach((date,di)=>{
+    const isWE=di>=5;newS['d'+di]={};
+    SHF.forEach(sh=>{
+      const avail=emps.filter(e=>!(blocks[e.id]&&blocks[e.id]['d'+di]&&blocks[e.id]['d'+di][sh.k]));
+      const pick=[];for(let k=0;k<2&&avail.length>0;k++){pick.push(avail[(idx+k)%avail.length].id);}
+      newS['d'+di][sh.k]=pick;idx++;
+    });
+  });
+  sl(true);await fs('sched/weeks/'+w+'/schedule',newS);sl(false);rMgrSched();
+};
+let _mgrBlkEmpId=null,_mgrBlkW=null,_mgrBlkData={};
+
+window.openMgrBlockEdit=async function(empId,empName){
+  _mgrBlkEmpId=empId;
+  _mgrBlkW=wk(CW);
+  sl(true);
+  const empBlocks=await fg('sched/weeks/'+_mgrBlkW+'/blocks/'+empId)||{};
+  sl(false);
+  _mgrBlkData={};
+  for(let di=0;di<7;di++){
+    _mgrBlkData['d'+di]={};
+    SHF.forEach(sh=>{_mgrBlkData['d'+di][sh.k]=(empBlocks['d'+di]&&empBlocks['d'+di][sh.k])||false;});
+  }
+  document.getElementById('mgrblk-title').textContent='עריכת חסימות — '+empName;
+  buildMgrBlkTable();
+  document.getElementById('mo-mgrblocks').classList.add('op');
+};
+
+function buildMgrBlkTable(){
+  const dates=wds(CW);
+  const tbl=document.getElementById('mgrblk-table');
+  tbl.innerHTML='';
+  // Header
+  const thead=document.createElement('tr');
+  const thHead=document.createElement('th');
+  thHead.style.cssText='padding:6px 4px;text-align:right;font-size:11px;color:var(--prd);';
+  thHead.textContent='משמרת';thead.appendChild(thHead);
+  dates.forEach((d,di)=>{
+    const th=document.createElement('th');
+    th.style.cssText='padding:6px 3px;text-align:center;font-size:10px;color:'+(di>=5?'var(--prm)':'var(--prd)')+';';
+    th.innerHTML=DAYS[di]+'<br><span style="font-weight:400;">'+fd(d)+'</span>';
+    thead.appendChild(th);
+  });
+  tbl.appendChild(thead);
+
+  function buildSection(label,filterFn){
+    const hdr=document.createElement('tr');
+    const tdh=document.createElement('td');
+    tdh.colSpan=8;
+    tdh.style.cssText='padding:4px 3px;font-size:10px;font-weight:700;color:var(--prd);background:var(--prll);';
+    tdh.textContent=label;hdr.appendChild(tdh);tbl.appendChild(hdr);
+    SHF.forEach(sh=>{
+      const tr=document.createElement('tr');
+      tr.style.borderTop='1px solid var(--prl)';
+      const tdl=document.createElement('td');
+      tdl.style.cssText='padding:5px 4px;font-weight:600;font-size:11px;white-space:nowrap;';
+      tdl.textContent=sh.l;tr.appendChild(tdl);
+      dates.forEach((d,di)=>{
+        const td=document.createElement('td');
+        td.style.cssText='padding:3px;text-align:center;';
+        if(!filterFn(di)){td.style.background='#f5f3ff';tr.appendChild(td);return;}
+        const blocked=_mgrBlkData['d'+di][sh.k];
+        const btn=document.createElement('div');
+        btn.style.cssText='cursor:pointer;border-radius:5px;padding:3px 2px;font-size:11px;font-weight:700;min-height:26px;display:flex;align-items:center;justify-content:center;background:'+(blocked?'#fee2e2':'var(--prl)')+';color:'+(blocked?'#991b1b':'var(--pr)')+';';
+        btn.textContent=blocked?'✕':'+';
+        btn.onclick=(()=>{const d2=di;const shk=sh.k;return()=>{_mgrBlkData['d'+d2][shk]=!_mgrBlkData['d'+d2][shk];buildMgrBlkTable();};})();
+        td.appendChild(btn);tr.appendChild(td);
+      });
+      tbl.appendChild(tr);
+    });
+  }
+  buildSection('📅 ימים רגילים (א׳–ה׳)',di=>di<5);
+  buildSection('🗓 סוף שבוע (ו׳–ש׳)',di=>di>=5);
+}
+
+window.toggleMgrBlk=function(di,shk){
+  _mgrBlkData['d'+di][shk]=!_mgrBlkData['d'+di][shk];
+  buildMgrBlkTable();
+};
+
+window.saveMgrBlockEdit=async function(){
+  if(!_mgrBlkEmpId)return;
+  sl(true);
+  await fs('sched/weeks/'+_mgrBlkW+'/blocks/'+_mgrBlkEmpId,_mgrBlkData);
+  sl(false);
+  ssm('sm-mgrblk');
+  setTimeout(()=>{cm('mo-mgrblocks');rMgrBlocks();},1500);
+};
+
+let _pendShiftMaxVol={w:null,di:null,shk:null};
+window.toggleShiftVol=async function(w,di,shk){
+  const path='sched/weeks/'+w+'/volunteers/d'+di+'/'+shk+'/__open';
+  const open=await fg(path);
+  if(open){
+    sl(true);await db.ref(path).remove();sl(false);rMgrSched();
+  } else {
+    // Ask for max volunteers
+    _pendShiftMaxVol={w,di,shk};
+    document.getElementById('sv-max-input').value='0';
+    document.getElementById('mo-shiftmax').classList.add('op');
+  }
+};
+window.confirmShiftVol=async function(){
+  const {w,di,shk}=_pendShiftMaxVol;
+  const maxV=parseInt(document.getElementById('sv-max-input').value)||0;
+  sl(true);
+  await fs('sched/weeks/'+w+'/volunteers/d'+di+'/'+shk+'/__open',true);
+  if(maxV>0)await fs('sched/weeks/'+w+'/volunteers/d'+di+'/'+shk+'/__maxVol',maxV);
+  sl(false);
+  cm('mo-shiftmax');
+  sendNotifToAll(w,'volunteer','✋ התנדבות חדשה — '+DAYS[di]+' '+SHF.find(s=>s.k===shk).l,'לחץ להתנדב בלשונית ההתנדבות');
+  rMgrSched();
+};
+window.publishToggle=async function(){
+  const w=wk(CW);
+  const pub=await fg('sched/weeks/'+w+'/published');
+  if(pub){
+    if(!confirm('לבטל את פרסום הסידור?'))return;
+    sl(true);await db.ref('sched/weeks/'+w+'/published').remove();sl(false);
+    await sendNotifToAll(w,'unpublish','↩ סידור בוטל','המנהל ביטל את פרסום הסידור ל'+fw(CW));
+  }else{
+    if(!confirm('לפרסם את הסידור לעובדים? התנדבויות מאושרות ייכנסו אוטומטית לסידור.'))return;
+    sl(true);
+    // Auto-approve all pending task volunteers → add to emps
+    const tasks=await fg('sched/weeks/'+w+'/tasks')||{};
+    for(const [tid,task] of Object.entries(tasks)){
+      if(task.pendingVols&&task.pendingVols.length){
+        const newEmps=[...(task.emps||[]),...task.pendingVols.filter(id=>!(task.emps||[]).includes(id))];
+        await fs('sched/weeks/'+w+'/tasks/'+tid+'/emps',newEmps);
+        await fs('sched/weeks/'+w+'/tasks/'+tid+'/pendingVols',[]);
+      }
+    }
+    // Auto-approve shift volunteers → add to schedule
+    const volData=await fg('sched/weeks/'+w+'/volunteers')||{};
+    for(let di=0;di<7;di++){
+      const dayVols=volData['d'+di]||{};
+      for(const shk of ['morning','evening','night']){
+        const shVols=dayVols[shk]||{};
+        const pendingIds=Object.keys(shVols).filter(id=>id!=='__open'&&shVols[id]);
+        if(pendingIds.length){
+          const cur=await fg('sched/weeks/'+w+'/schedule/d'+di+'/'+shk)||[];
+          const newList=[...cur,...pendingIds.filter(id=>!cur.includes(id))];
+          await fs('sched/weeks/'+w+'/schedule/d'+di+'/'+shk,newList);
+        }
+      }
+    }
+    await fs('sched/weeks/'+w+'/published',true);
+    sl(false);
+    await sendNotifToAll(w,'publish','📋 סידור שבועי פורסם','הסידור ל'+fw(CW)+' זמין כעת לצפייה');
+  }
+  rMgrSched();
+};
+
+// ===== MGR BLOCKS =====
+async function rMgrBlocks(){
+  const w=wk(CW);
+  document.getElementById('wt-mb').textContent=fw(CW);
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  const blocks=await fg('sched/weeks/'+w+'/blocks')||{};
+  const notes=await fg('sched/weeks/'+w+'/notes')||{};
+  const dlData=await fg('sched/weeks/'+w+'/deadline')||{};
+  _bs=await fg('sched/config/blockSettings')||DEF_BS;
+  // Load block settings into blocks tab checkboxes
+  const bIds={morning:'b-am',evening:'b-ae',night:'b-an'};
+  const bWIds={morning:'b-wm',evening:'b-we',night:'b-wn'};
+  const bKeys={morning:'allowMorning',evening:'allowEvening',night:'allowNight'};
+  const bWKeys={morning:'allowWeekendMorning',evening:'allowWeekendEvening',night:'allowWeekendNight'};
+  Object.keys(bIds).forEach(sh=>{
+    const el=document.getElementById(bIds[sh]);if(el)el.checked=_bs[bKeys[sh]]!==false;
+    const elw=document.getElementById(bWIds[sh]);if(elw)elw.checked=_bs[bWKeys[sh]]!==false;
+  });
+  if(dlData.time)document.getElementById('dl-in').value=dlData.time.slice(0,16);
+  const now=new Date(),past=dlData.time&&new Date(dlData.time)<now;
+  const statusEl=document.getElementById('dl-status');
+  if(dlData.time){
+    const dd=new Date(dlData.time);
+    statusEl.innerHTML='<div class="'+(past?'db':'wb')+'">'+
+      (past?'⛔ הדד-ליין עבר — עובדים לא יכולים לשנות חסימות':'✔ דד-ליין פעיל עד ')+
+      dd.toLocaleDateString('he-IL')+' '+dd.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})+'</div>';
+  }else statusEl.innerHTML='';
+  document.getElementById('st-e').textContent=emps.length;
+  const sub=emps.filter(e=>blocks[e.id]&&Object.keys(blocks[e.id]).length>0);
+  document.getElementById('st-s').textContent=sub.length;
+  document.getElementById('st-p').textContent=emps.length-sub.length;
+
+  // per-emp - show blocks split by weekday/weekend
+  const grid=document.getElementById('blocks-sum');grid.innerHTML='';
+  emps.forEach(emp=>{
+    const eb=blocks[emp.id]||{},note=notes[emp.id]||'';
+    const mb2=emp.maxBlocks&&typeof emp.maxBlocks==='object'?emp.maxBlocks:{};
+    const wdMx={m:mb2.wdMorning||mb2.morning||3,e:mb2.wdEvening||mb2.evening||3,n:mb2.wdNight||mb2.night||3};
+    const weMx={m:mb2.weekendMorning||mb2.morning||3,e:mb2.weekendEvening||mb2.evening||3,n:mb2.weekendNight||mb2.night||3};
+    const shWD={morning:0,evening:0,night:0},shWE={morning:0,evening:0,night:0};
+    for(let di=0;di<7;di++){const db2=(blocks[emp.id]||{})['d'+di]||{};SHF.forEach(sh=>{if(db2[sh.k]){if(di>=5)shWE[sh.k]++;else shWD[sh.k]++;}});}
+    const card=document.createElement('div');card.className='suc';
+
+    // Build header
+    const hdr=document.createElement('div');
+    hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;';
+    hdr.innerHTML='<div class="sun">'+emp.name+'</div>'+
+      '<button onclick="openMgrBlockEdit(\''+emp.id+'\',\''+emp.name+'\')" style="font-size:10px;background:var(--prl);color:var(--pr);border:none;border-radius:5px;padding:2px 8px;cursor:pointer;font-weight:600;">✏️ עריכה</button>';
+    card.appendChild(hdr);
+
+    const typeBadge=document.createElement('span');typeBadge.className='sut';
+    typeBadge.textContent=emp.type==='student'?'סטודנט':'עובד';
+    card.appendChild(typeBadge);
+    // Show max per shift
+    const mxInfo=document.createElement('div');
+    mxInfo.style.cssText='font-size:9px;color:#888;margin-top:2px;';
+    mxInfo.innerHTML='📅 ב:'+wdMx.m+' ע:'+wdMx.e+' ל:'+wdMx.n+' &nbsp;|&nbsp; 🗓 ב:'+weMx.m+' ע:'+weMx.e+' ל:'+weMx.n;
+    card.appendChild(mxInfo);
+
+    // Weekday blocks (Sun-Thu)
+    const wdLabel=document.createElement('div');
+    wdLabel.style.cssText='font-size:9px;font-weight:700;color:var(--prd);margin:.3rem 0 .2rem;';
+    wdLabel.textContent='📅 ימים רגילים';card.appendChild(wdLabel);
+    const wdRow=document.createElement('div');wdRow.style.cssText='display:flex;gap:2px;flex-wrap:wrap;';
+    // Weekday chips with count/max
+    const wdCountStr='('+shWD.morning+'/'+wdMx.m+' ב, '+shWD.evening+'/'+wdMx.e+' ע, '+shWD.night+'/'+wdMx.n+' ל)';
+    wdLabel.textContent='📅 ימים רגילים '+wdCountStr;
+    SHF.forEach(sh=>{
+      for(let di=0;di<5;di++){
+        const blocked=eb['d'+di]&&eb['d'+di][sh.k];
+        if(!blocked)return;
+        const chip=document.createElement('span');
+        chip.style.cssText='font-size:8px;padding:1px 4px;border-radius:4px;background:#fee2e2;color:#991b1b;font-weight:600;';
+        chip.textContent=DAYS[di].slice(0,1)+' '+sh.l;
+        wdRow.appendChild(chip);
+      }
+    });
+    if(!wdRow.children.length){
+      const none=document.createElement('span');none.style.cssText='font-size:9px;color:#bbb;';none.textContent='ללא';wdRow.appendChild(none);
+    }
+    card.appendChild(wdRow);
+
+    // Weekend chips with count/max
+    const weLabel=document.createElement('div');
+    weLabel.style.cssText='font-size:9px;font-weight:700;color:var(--prm);margin:.3rem 0 .2rem;';
+    const weCountStr='('+shWE.morning+'/'+weMx.m+' ב, '+shWE.evening+'/'+weMx.e+' ע, '+shWE.night+'/'+weMx.n+' ל)';
+    weLabel.textContent='🗓 סוף שבוע '+weCountStr;
+    card.appendChild(weLabel);
+    const weRow=document.createElement('div');weRow.style.cssText='display:flex;gap:2px;flex-wrap:wrap;';
+    SHF.forEach(sh=>{
+      for(let di=5;di<7;di++){
+        const blocked=eb['d'+di]&&eb['d'+di][sh.k];
+        if(!blocked)return;
+        const chip=document.createElement('span');
+        chip.style.cssText='font-size:8px;padding:1px 4px;border-radius:4px;background:#fce7f3;color:#9d174d;font-weight:600;';
+        chip.textContent=DAYS[di]+' '+sh.l;
+        weRow.appendChild(chip);
+      }
+    });
+    if(!weRow.children.length){
+      const none=document.createElement('span');none.style.cssText='font-size:9px;color:#bbb;';none.textContent='ללא';weRow.appendChild(none);
+    }
+    card.appendChild(weRow);
+
+    if(note){
+      const nd=document.createElement('div');nd.style.cssText='margin-top:.3rem;';
+      nd.innerHTML='<span class="chip nt">📝 '+note+'</span>';card.appendChild(nd);
+    }
+    grid.appendChild(card);
+  });
+
+  // overview — show names of blockers per cell
+  const og=document.getElementById('mb-overview');og.innerHTML='';
+  wds(CW).forEach((date,di)=>{
+    const isWE=di>=5,col=document.createElement('div');col.className='dc';
+    const hdr=document.createElement('div');hdr.className='dh'+(isWE?' we':'');
+    hdr.innerHTML='<div>'+DAYS[di]+'</div><div style="font-size:10px;font-weight:400;">'+fd(date)+'</div>';col.appendChild(hdr);
+    SHF.forEach(sh=>{
+      const blockers=emps.filter(e=>blocks[e.id]&&blocks[e.id]['d'+di]&&blocks[e.id]['d'+di][sh.k]);
+      const cell=document.createElement('div');
+      cell.style.cssText='border-radius:5px;padding:3px 2px;font-size:8px;min-height:26px;background:'+(blockers.length?'#fee2e2':'var(--prll)')+';color:'+(blockers.length?'#991b1b':'#888')+';text-align:center;';
+      cell.innerHTML='<div style="font-weight:700;">'+sh.l+(blockers.length?' ('+blockers.length+')':'')+'</div>'+
+        blockers.map(e=>'<div>'+e.name+'</div>').join('');
+      col.appendChild(cell);
+    });
+    og.appendChild(col);
+  });
+}
+window.saveBlockSettings=async function(){
+  const settings={
+    allowMorning:document.getElementById('b-am')?document.getElementById('b-am').checked:true,
+    allowEvening:document.getElementById('b-ae')?document.getElementById('b-ae').checked:true,
+    allowNight:document.getElementById('b-an')?document.getElementById('b-an').checked:true,
+    allowWeekendMorning:document.getElementById('b-wm')?document.getElementById('b-wm').checked:true,
+    allowWeekendEvening:document.getElementById('b-we')?document.getElementById('b-we').checked:true,
+    allowWeekendNight:document.getElementById('b-wn')?document.getElementById('b-wn').checked:true,
+  };
+  sl(true);await fs('sched/config/blockSettings',settings);_bs=settings;sl(false);
+  // sync with settings tab checkboxes too
+  ['a-m','a-e','a-n'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.checked=[settings.allowMorning,settings.allowEvening,settings.allowNight][i];});
+  ['a-wm','a-we','a-wn'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.checked=[settings.allowWeekendMorning,settings.allowWeekendEvening,settings.allowWeekendNight][i];});
+  ssm('sm-bsets');
+};
+window.saveDL=async function(){
+  const time=document.getElementById('dl-in').value;if(!time){alert('יש לבחור תאריך ושעה');return;}
+  const w=wk(CW);
+  sl(true);await fs('sched/weeks/'+w+'/deadline/time',time);
+  const dd=new Date(time);
+  const dtStr=dd.toLocaleDateString('he-IL')+' '+dd.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+  await sendNotifToAll(w,'deadline','⏰ דד-ליין לחסימות','יש להגיש חסימות עד '+dtStr+' לשבוע '+fw(CW));
+  sl(false);ssm('sm-dl');rMgrBlocks();
+};
+window.clearDL=async function(){
+  if(!confirm('למחוק את הדד-ליין?'))return;
+  sl(true);await db.ref('sched/weeks/'+wk(CW)+'/deadline/time').remove();sl(false);
+  document.getElementById('dl-in').value='';rMgrBlocks();
+};
+
+// ===== TASKS =====
+async function rMgrTasks(){
+  const w=wk(CW);
+  document.getElementById('wt-mt').textContent=fw(CW);
+  const tasks=await fg('sched/weeks/'+w+'/tasks')||{};
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  const list=document.getElementById('tasks-list');list.innerHTML='';
+  if(!Object.keys(tasks).length){
+    list.innerHTML='<div class="card" style="text-align:center;color:#888;padding:1.5rem;">אין משמרות/משימות לשבוע זה</div>';return;
+  }
+  Object.entries(tasks).forEach(([tid,task])=>{
+    const row=document.createElement('div');row.className='tr';
+    const assignedEmps=(task.emps||[]).map(id=>emps.find(e=>e.id===id)).filter(Boolean);
+    row.innerHTML='<div class="tn">'+
+      '<div class="tnm">📋 '+task.name+'</div>'+
+      (task.date||task.hours?'<div class="tdt">'+(task.date?'📅 '+task.date:'')+(task.hours?' 🕐 '+task.hours:'')+'</div>':'')+
+      (task.note?'<div style="font-size:10px;color:#888;margin-top:1px;">📝 '+task.note+'</div>':'')+
+      '</div>'+
+      '<div class="teb">'+
+        assignedEmps.map(e=>'<span class="tebadge">✔ '+e.name+'<button onclick="remEmpTask(\''+w+'\',\''+tid+'\',\''+e.id+'\')">×</button></span>').join('')+
+      '</div>'+
+      '<select class="isel" id="tsel-'+tid+'"><option value="">+ עובד</option>'+
+        emps.filter(e=>!(task.emps||[]).includes(e.id)).map(e=>'<option value="'+e.id+'">'+e.name+'</option>').join('')+
+      '</select>'+
+      '<button onclick="addEmpTask(\''+w+'\',\''+tid+'\')" style="background:var(--prl);color:var(--pr);border:1.5px solid #a78bfa;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700;">הוסף</button>'+
+      '<button onclick="editTask(\''+w+'\',\''+tid+'\')" style="background:var(--prl);color:var(--pr);border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700;">✏️</button>'+
+      '<button onclick="toggleTaskVolAndNotify(\''+w+'\',\''+tid+'\')" style="background:'+(task.volOpen?'#dcfce7':'var(--prl)')+';color:'+(task.volOpen?'#166534':'var(--pr)')+';border:none;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;">✋'+(task.volOpen?'✓':'')+'</button>'+
+      '<button onclick="delTask(\''+w+'\',\''+tid+'\')" class="bd">🗑</button>';
+    list.appendChild(row);
+
+    // Add pending volunteers section using DOM (avoid quote issues)
+    const pendingIds=(task.pendingVols||[]).filter(id=>!(task.emps||[]).includes(id));
+    if(pendingIds.length){
+      const pvDiv=document.createElement('div');
+      pvDiv.style.cssText='margin-top:5px;padding:6px 10px;background:#fef9c3;border:1px solid #fcd34d;border-radius:8px;';
+      pvDiv.innerHTML='<div style="font-size:11px;font-weight:700;color:#713f12;margin-bottom:4px;">✋ ממתינים לאישור:</div>';
+      pendingIds.forEach(empId=>{
+        const emp=emps.find(e=>e.id===empId);if(!emp)return;
+        const prow=document.createElement('div');
+        prow.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:12px;font-weight:600;color:#1e1b4b;';
+        prow.innerHTML=emp.name;
+        const btns=document.createElement('div');btns.style.cssText='display:flex;gap:4px;';
+        const appr=document.createElement('button');
+        appr.textContent='✔ אשר';
+        appr.style.cssText='background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;';
+        appr.onclick=(()=>{const eid=empId;const t=tid;return()=>approveTaskVol(w,t,eid);})();
+        const rej=document.createElement('button');
+        rej.textContent='✕ דחה';
+        rej.style.cssText='background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;';
+        rej.onclick=(()=>{const eid=empId;const t=tid;return()=>rejectTaskVol(w,t,eid);})();
+        btns.appendChild(appr);btns.appendChild(rej);prow.appendChild(btns);
+        pvDiv.appendChild(prow);
+      });
+      list.appendChild(pvDiv);
+    }
+  });
+}
+function openAddTaskModal(){
+  _editTid=null;_editW=null;
+  ['tk-name','tk-date','tk-hours','tk-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('tk-maxvol').value='0';
+  document.getElementById('tk-modal-title').textContent='הוסף משמרת / משימה';
+  document.getElementById('tk-save-btn').textContent='שמור';
+  document.getElementById('mo-addtask').classList.add('op');
+}
+window.confirmAddTask=async function(){
+  const name=document.getElementById('tk-name').value.trim();if(!name)return;
+  const date=document.getElementById('tk-date').value;
+  const hours=document.getElementById('tk-hours').value.trim();
+  const note=document.getElementById('tk-note').value.trim();
+  const maxVol=parseInt(document.getElementById('tk-maxvol').value)||0;
+  const w=_editTid?_editW:wk(CW);
+  sl(true);
+  if(_editTid){
+    // Edit existing task - preserve emps and volOpen
+    const existing=await fg('sched/weeks/'+w+'/tasks/'+_editTid)||{};
+    await fs('sched/weeks/'+w+'/tasks/'+_editTid,{...existing,name,date,hours,note,maxVol});
+    _editTid=null;_editW=null;
+  }else{
+    await fs('sched/weeks/'+wk(CW)+'/tasks/t'+Date.now(),{name,date,hours,note,maxVol,emps:[],pendingVols:[]});
+  }
+  sl(false);
+  // Reset modal
+  document.getElementById('tk-modal-title').textContent='הוסף משמרת / משימה';
+  document.getElementById('tk-save-btn').textContent='שמור';
+  cm('mo-addtask');rMgrTasks();
+};
+window.toggleTaskVol=async function(w,tid){
+  const task=await fg('sched/weeks/'+w+'/tasks/'+tid)||{};
+  sl(true);await fs('sched/weeks/'+w+'/tasks/'+tid+'/volOpen',!task.volOpen);sl(false);
+  rMgrTasks();
+};
+
+let _editTid=null,_editW=null;
+window.editTask=async function(w,tid){
+  _editTid=tid;_editW=w;
+  const task=await fg('sched/weeks/'+w+'/tasks/'+tid)||{};
+  document.getElementById('tk-modal-title').textContent='עריכת משמרת/משימה';
+  document.getElementById('tk-name').value=task.name||'';
+  document.getElementById('tk-date').value=task.date||'';
+  document.getElementById('tk-hours').value=task.hours||'';
+  document.getElementById('tk-note').value=task.note||'';
+  document.getElementById('tk-maxvol').value=task.maxVol||0;
+  document.getElementById('tk-save-btn').textContent='שמור שינויים';
+  document.getElementById('mo-addtask').classList.add('op');
+};
+
+window.toggleTaskVolAndNotify=async function(w,tid){
+  const task=await fg('sched/weeks/'+w+'/tasks/'+tid)||{};
+  const newVal=!task.volOpen;
+  sl(true);
+  await fs('sched/weeks/'+w+'/tasks/'+tid+'/volOpen',newVal);
+  sl(false);
+  if(newVal){
+    await fs('sched/weeks/'+w+'/tasks/'+tid+'/broadcast',true);
+    await sendNotifToAll(w,'vol_task','✋ התנדבות חדשה — '+task.name,'לחץ להתנדב בלשונית ההתנדבות'+(task.maxVol?' (מקס '+task.maxVol+' מתנדבים)':''));
+    alert('✅ ההתנדבות נשלחה לכל העובדים עם התראה');
+  }
+  rMgrTasks();
+};
+window.delTask=async function(w,tid){
+  if(!confirm('למחוק?'))return;sl(true);await db.ref('sched/weeks/'+w+'/tasks/'+tid).remove();sl(false);rMgrTasks();
+};
+// ===== NOTIFICATIONS =====
+const NOTIF_ICONS={
+  publish:'📋',unpublish:'↩',swap:'↔',swap_ok:'✔',swap_rej:'✕',
+  vol_task:'✋',vol_approved:'✔',volunteer:'✋',deadline:'⏰',block:'🔒',swap_rej:'❌'
+};
+
+let _swReg=null;
+
+// Register Service Worker for push
+async function registerSW(){
+  if(!('serviceWorker' in navigator))return;
+  try{
+    _swReg=await navigator.serviceWorker.register('sw.js',{scope:'./'});
+    console.log('SW registered');
+  }catch(e){console.log('SW failed:',e);}
+}
+
+// OneSignal App ID - replace with yours from onesignal.com
+const ONESIGNAL_APP_ID = '6f6d14d6-4e4d-43b7-bee7-fd5a3f189735';
+
+function triggerPush(title,body,tag){
+  // In-app: use SW showNotification (tab open)
+  if(_swReg&&Notification.permission==='granted'){
+    _swReg.showNotification(title,{body:body||'',tag:tag||'sched',dir:'rtl',lang:'he',vibrate:[200,100,200]})
+      .catch(()=>{try{new Notification(title,{body:body||''});}catch(e){}});
+  }
+}
+
+// Send OneSignal push to specific external user IDs
+// OneSignal push - stores pending notifications in Firebase
+// OneSignal SDK will deliver them when user is subscribed
+async function oneSignalPushToUser(extUserId,title,body){
+  // Store in Firebase - OneSignal listener picks it up per user
+  // The actual push is handled by OneSignal SDK via subscription
+  if(!window.OneSignal)return;
+  try{
+    // Tag the current user so we can target them
+    await window.OneSignal.User.addTag('userId',extUserId);
+  }catch(e){}
+}
+
+async function oneSignalPushToAll(title,body){
+  // OneSignal will send to all subscribed users automatically
+  // via the Firebase listener + OneSignal subscription
+  if(!window.OneSignal)return;
+}
+
+async function requestPushPermission(){
+  if(typeof Notification==='undefined')return;
+  if(Notification.permission==='default'){
+    const p=await Notification.requestPermission();
+    if(p==='granted'){
+      triggerPush('🔔 התראות פעילות!','תקבל התראות על כל עדכון — סידור, התנדבות, החלפות ועוד','init');
+    }
+  }
+}
+
+async function sendNotifToAll(w,type,title,body){
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  const ts=Date.now();
+  const updates={};
+  emps.forEach(e=>{
+    updates['sched/notifs/'+e.id+'/n'+ts+'_'+e.id]={type,title,body,ts,read:false,week:w};
+  });
+  updates['sched/notifs/manager/n'+ts]={type,title,body,ts,read:false,week:w};
+  await db.ref().update(updates);
+  triggerPush(title,body,type);
+  // OneSignal push to ALL users (works when app closed)
+  oneSignalPushToAll(title,body);
+}
+
+async function sendNotifTo(empId,type,title,body,w){
+  const ts=Date.now();
+  const key=empId==='mgr'?'manager':empId;
+  await fs('sched/notifs/'+key+'/n'+ts,{type,title,body,ts,read:false,week:w||wk(CW)});
+  if(CU&&(CU.id===empId||(empId==='manager'&&CU.id==='mgr'))){
+    triggerPush(title,body,type);
+  }
+  // OneSignal push to specific user (works when app closed)
+  oneSignalPushToUser(key,title,body);
+}
+
+async function loadNotifs(){
+  if(!CU)return[];
+  const key=CU.id==='mgr'?'manager':CU.id;
+  const notifs=await fg('sched/notifs/'+key)||{};
+  const list=Object.entries(notifs).map(([k,v])=>({...v,_key:k})).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const unread=list.filter(n=>!n.read).length;
+  const badge=document.getElementById('notif-badge');
+  if(badge){
+    if(unread>0){badge.style.display='flex';badge.textContent=unread>9?'9+':String(unread);}
+    else badge.style.display='none';
+  }
+  return list;
+}
+
+window.openNotif=async function(){
+  const key=CU.id==='mgr'?'manager':CU.id;
+  const list=await loadNotifs();
+  const nl=document.getElementById('notif-list');nl.innerHTML='';
+  const cb=document.getElementById('notif-count-badge');
+  const unread=list.filter(n=>!n.read).length;
+  if(cb)cb.textContent=unread?unread+' חדשות':'';
+  if(!list.length){
+    nl.innerHTML='<div style="text-align:center;padding:2.5rem;color:#9ca3af;">'+
+      '<div style="font-size:36px;margin-bottom:.5rem;">🔕</div>'+
+      '<div style="font-size:14px;font-weight:600;">אין התראות עדיין</div></div>';
+    document.getElementById('mo-notif').classList.add('op');return;
+  }
+  // Mark all as read
+  if(unread){
+    const updates={};
+    list.forEach(n=>{if(n._key&&!n.read)updates['sched/notifs/'+key+'/'+n._key+'/read']=true;});
+    db.ref().update(updates);
+  }
+  list.forEach(n=>{
+    const row=document.createElement('div');
+    const icon=NOTIF_ICONS[n.type]||'🔔';
+    const d=new Date(n.ts);
+    const timeStr=d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})+' · '+d.toLocaleDateString('he-IL');
+    row.style.cssText='display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-bottom:1px solid #f3f4f6;cursor:default;transition:background .15s;'+(n.read?'':'background:#faf5ff;');
+    row.innerHTML='<div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--pr),var(--acc));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">'+icon+'</div>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:13px;font-weight:700;color:#1e1b4b;line-height:1.3;">'+n.title+'</div>'+
+        '<div style="font-size:12px;color:#6b7280;margin-top:3px;line-height:1.4;">'+n.body+'</div>'+
+        '<div style="font-size:10px;color:#d1d5db;margin-top:4px;">'+timeStr+'</div>'+
+      '</div>'+
+      (n.read?'':'<div style="width:8px;height:8px;background:var(--pr);border-radius:50%;margin-top:4px;flex-shrink:0;"></div>');
+    nl.appendChild(row);
+  });
+  document.getElementById('notif-badge').style.display='none';
+  document.getElementById('mo-notif').classList.add('op');
+};
+
+window.clearNotifs=async function(){
+  if(!CU)return;
+  const key=CU.id==='mgr'?'manager':CU.id;
+  sl(true);await db.ref('sched/notifs/'+key).remove();sl(false);
+  document.getElementById('notif-list').innerHTML='';
+  const badge=document.getElementById('notif-badge');if(badge)badge.style.display='none';
+  cm('mo-notif');
+};
+
+async function startNotifListener(){
+  if(!CU)return;
+  const key=CU.id==='mgr'?'manager':CU.id;
+  // Tag user in OneSignal for targeting
+  if(window.OneSignal){
+    try{
+      await window.OneSignal.User.addTag('userId',key);
+      await window.OneSignal.User.addTag('name',CU.name||'');
+    }catch(e){}
+  }
+  // Live Firebase listener - updates badge in real time
+  db.ref('sched/notifs/'+key).on('value',snap=>{
+    if(!snap.exists())return;
+    const notifs=snap.val()||{};
+    const unread=Object.values(notifs).filter(n=>!n.read).length;
+    const badge=document.getElementById('notif-badge');
+    if(badge){
+      if(unread>0){badge.style.display='flex';badge.textContent=unread>9?'9+':String(unread);}
+      else badge.style.display='none';
+    }
+    // Trigger push for newly arrived items (within last 8 seconds)
+    const allNotifs=Object.values(notifs);
+    const veryNew=allNotifs.filter(n=>!n.read&&n.ts&&Date.now()-n.ts<8000);
+    veryNew.forEach(n=>triggerPush(n.title,n.body,n.type));
+  });
+  // Request permission
+  await requestPushPermission();
+}
+
+// Init SW on page load
+registerSW();
+
+// Init OneSignal
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+OneSignalDeferred.push(async function(OneSignal) {
+  await OneSignal.init({
+    appId: ONESIGNAL_APP_ID,
+    notifyButton: {enable: true, position: 'bottom-left'},
+    allowLocalhostAsSecureOrigin: true,
+  });
+});
+
+// ===== SWAP REQUESTS =====
+let _pendSwap=null;
+window.openSwapReq=async function(w,di,shk){
+  _pendSwap={w,di,shk};
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  const sched=await fg('sched/weeks/'+w+'/schedule/d'+di+'/'+shk)||[];
+  const sh=SHF.find(s=>s.k===shk);
+  // Restore hidden elements
+  const selFg=document.getElementById('swap-emp-sel').closest('.fg');
+  const noteFg=document.getElementById('swap-note').closest('.fg');
+  const confBtn=document.querySelector('[onclick="confirmSwapReq()"]');
+  if(selFg)selFg.style.display='';if(noteFg)noteFg.style.display='';if(confBtn)confBtn.style.display='';
+  document.getElementById('swap-req-info').textContent='החלפה עבור: '+sh.l+' — '+DAYS[di];
+  // Show other employees assigned to same shift
+  const sel=document.getElementById('swap-emp-sel');sel.innerHTML='';
+  emps.filter(e=>e.id!==CU.id).forEach(e=>{
+    const o=document.createElement('option');o.value=e.id;
+    o.textContent=e.name+(sched.includes(e.id)?' (משובץ במשמרת זו)':'');
+    sel.appendChild(o);
+  });
+  document.getElementById('swap-note').value='';
+  document.getElementById('mo-swap-req').classList.add('op');
+};
+window.pickSwapShift=function(){
+  const idx=parseInt(document.getElementById('swap-shift-pick').value);
+  const pick=window._assignedShifts[idx];
+  if(!pick)return;
+  cm('mo-swap-req');
+  setTimeout(()=>openSwapReq(window._swapW,pick.di,pick.shk),100);
+};
+window.confirmSwapReq=async function(){
+  if(!_pendSwap)return;
+  const {w,di,shk}=_pendSwap;
+  const targetId=document.getElementById('swap-emp-sel').value;
+  const note=document.getElementById('swap-note').value.trim();
+  if(!targetId)return;
+  const ts=Date.now();
+  const sh=SHF.find(s=>s.k===shk);
+  sl(true);
+  await fs('sched/weeks/'+w+'/swaps/s'+ts,{
+    from:CU.id,to:targetId,di,shk,note,ts,
+    status:'waiting_employee',week:w
+  });
+  // Notify the TARGET employee
+  await sendNotifTo(targetId,'swap','↔ בקשת החלפה חדשה',
+    CU.name+' מבקש להתחלף איתך — '+sh.l+' '+DAYS[di]+'. לחץ על לשונית ״החלפות״ לאישור/דחייה',w);
+  sl(false);
+  cm('mo-swap-req');
+  alert('הבקשה נשלחה ל'+targetId+'! הם יצטרכו לאשר תחילה.');
+};
+window.openSwapMgr=async function(w){
+  const swaps=await fg('sched/weeks/'+w+'/swaps')||{};
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  const pending=Object.entries(swaps).filter(([,s])=>s.status==='pending');
+  const list=document.getElementById('swap-mgr-list');list.innerHTML='';
+  if(!pending.length){list.innerHTML='<div style="color:#888;font-size:13px;text-align:center;padding:1rem;">אין בקשות ממתינות</div>';document.getElementById('mo-swap-mgr').classList.add('op');return;}
+  pending.forEach(([sid,swap])=>{
+    const fromEmp=emps.find(e=>e.id===swap.from);
+    const toEmp=emps.find(e=>e.id===swap.to);
+    const sh=SHF.find(s=>s.k===swap.shk);
+    const row=document.createElement('div');
+    row.style.cssText='border:1px solid var(--prl);border-radius:10px;padding:.9rem;margin-bottom:.7rem;background:var(--prll);';
+    row.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--prd);margin-bottom:.4rem;">'+
+      (fromEmp?fromEmp.name:'?')+' ↔ '+(toEmp?toEmp.name:'?')+'</div>'+
+      '<div style="font-size:12px;color:#888;margin-bottom:.4rem;">'+sh.l+' — '+DAYS[swap.di]+'</div>'+
+      (swap.note?'<div style="font-size:11px;color:#666;margin-bottom:.4rem;">📝 '+swap.note+'</div>':'')+
+      '<div style="display:flex;gap:6px;">'+
+        '<button onclick="approveSwap(\''+w+'\',\''+sid+'\',\''+swap.from+'\',\''+swap.to+'\','+swap.di+',\''+swap.shk+'\')" style="background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">✔ אשר</button>'+
+        '<button onclick="rejectSwap(\''+w+'\',\''+sid+'\',\''+swap.from+'\',\''+swap.to+'\')" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">✕ דחה</button>'+
+      '</div>';
+    list.appendChild(row);
+  });
+  document.getElementById('mo-swap-mgr').classList.add('op');
+};
+window.approveSwap=async function(w,sid,fromId,toId,di,shk){
+  sl(true);
+  // Swap in schedule
+  const cur=await fg('sched/weeks/'+w+'/schedule/d'+di+'/'+shk)||[];
+  const updated=cur.map(id=>id===fromId?toId:id===toId?fromId:id);
+  await fs('sched/weeks/'+w+'/schedule/d'+di+'/'+shk,updated);
+  await fs('sched/weeks/'+w+'/swaps/'+sid+'/status','approved');
+  // Also update the approved time
+  await fs('sched/weeks/'+w+'/swaps/'+sid+'/approvedAt',Date.now());
+  const sh=SHF.find(s=>s.k===shk);
+  await sendNotifTo(fromId,'swap_ok','✔ החלפה אושרה','המנהל אישר את ההחלפה שלך — '+sh.l+' '+DAYS[di],w);
+  await sendNotifTo(toId,'swap_ok','✔ החלפה אושרה','אתה מוחלף במשמרת '+sh.l+' '+DAYS[di],w);
+  sl(false);rMgrSwaps();rMgrSched();
+};
+window.rejectSwap=async function(w,sid,fromId,toId){
+  sl(true);
+  await fs('sched/weeks/'+w+'/swaps/'+sid+'/status','rejected');
+  await sendNotifTo(fromId,'swap_rej','✕ החלפה נדחתה','המנהל דחה את בקשת ההחלפה שלך',w);
+  sl(false);rMgrSwaps();rMgrSched();
+};
+
+// ===== SWAP VIEWS =====
+async function rEmpSwaps(){
+  const w=wk(CW);
+  document.getElementById('wt-eswap').textContent=fw(CW);
+  const swaps=await fg('sched/weeks/'+w+'/swaps')||{};
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  const container=document.getElementById('emp-swaps-content');
+  container.innerHTML='';
+  const mySwaps=Object.entries(swaps).filter(([,s])=>s.from===CU.id||s.to===CU.id);
+  // Update badge — swaps that need MY action
+  const needAction=mySwaps.filter(([,s])=>s.to===CU.id&&s.status==='waiting_employee').length;
+  const badge=document.getElementById('emp-swap-badge');
+  if(badge){badge.style.display=needAction?'inline':'none';if(needAction)badge.textContent=needAction;}
+  if(!mySwaps.length){
+    container.innerHTML='<div class="card" style="text-align:center;color:#888;padding:2rem;">אין בקשות החלפה לשבוע זה</div>';return;
+  }
+  mySwaps.sort((a,b)=>(b[1].ts||0)-(a[1].ts||0)).forEach(([sid,swap])=>{
+    const isSender=swap.from===CU.id;
+    const isTarget=swap.to===CU.id;
+    const otherId=isSender?swap.to:swap.from;
+    const other=emps.find(e=>e.id===otherId);
+    const sh=SHF.find(s=>s.k===swap.shk);
+    // Status display
+    let statusText,statusBg,statusColor,statusDesc='';
+    switch(swap.status){
+      case 'waiting_employee':
+        if(isTarget){statusText='⏳ ממתין לאישורך';statusBg='#fef3c7';statusColor='#92400e';
+          statusDesc='<div style="font-size:12px;color:#92400e;background:#fef3c7;border-radius:8px;padding:8px 12px;margin-top:.5rem;">'+
+            (other?other.name:'?')+' מבקש להתחלף איתך. האם תאשר?'+
+            '<div style="display:flex;gap:8px;margin-top:8px;">'+
+            '<button onclick="empApproveSwap(\''+w+'\',\''+sid+'\')" style="background:#d1fae5;color:#065f46;border:none;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;flex:1;">✔ אשר</button>'+
+            '<button onclick="empRejectSwap(\''+w+'\',\''+sid+'\')" style="background:#fee2e2;color:#991b1b;border:none;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;flex:1;">✕ דחה</button>'+
+            '</div></div>';}
+        else{statusText='⏳ ממתין לאישור '+( other?other.name:'?');statusBg='#fef3c7';statusColor='#92400e';}
+        break;
+      case 'waiting_manager':
+        statusText='⏳ ממתין לאישור מנהל';statusBg='#dbeafe';statusColor='#1e40af';
+        statusDesc='<div style="font-size:12px;color:#1e40af;background:#dbeafe;border-radius:8px;padding:6px 12px;margin-top:.5rem;">'+
+          (other?other.name:'?')+' אישר — מחכה לאישור סופי מהמנהל</div>';
+        break;
+      case 'approved':
+        statusText='✔ אושר';statusBg='#d1fae5';statusColor='#065f46';
+        statusDesc='<div style="font-size:12px;color:#065f46;background:#d1fae5;border-radius:8px;padding:6px 12px;margin-top:.5rem;">✔ ההחלפה מאושרת ומופיעה בסידור הסופי</div>';
+        break;
+      case 'rejected_by_employee':
+        statusText='✕ נדחה ע"י '+( other?other.name:'?');statusBg='#fee2e2';statusColor='#991b1b';
+        statusDesc='<div style="font-size:12px;color:#991b1b;background:#fee2e2;border-radius:8px;padding:6px 12px;margin-top:.5rem;">העובד השני דחה את הבקשה</div>';
+        break;
+      case 'rejected_by_manager':
+        statusText='✕ נדחה ע"י המנהל';statusBg='#fee2e2';statusColor='#991b1b';
+        statusDesc='<div style="font-size:12px;color:#991b1b;background:#fee2e2;border-radius:8px;padding:6px 12px;margin-top:.5rem;">המנהל דחה את בקשת ההחלפה</div>';
+        break;
+      default:
+        statusText='⏳ ממתין';statusBg='#fef3c7';statusColor='#92400e';
+    }
+    const card=document.createElement('div');card.className='card';
+    card.innerHTML=
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">'+
+        '<div style="font-size:14px;font-weight:700;color:#1e1b4b;">'+
+          (isSender?'↔ שלחת בקשה ל-':'↔ קיבלת בקשה מ-')+(other?other.name:'?')+'</div>'+
+        '<span style="background:'+statusBg+';color:'+statusColor+';padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;">'+statusText+'</span>'+
+      '</div>'+
+      '<div style="font-size:13px;color:#555;">'+sh.l+' — '+DAYS[swap.di]+' '+fd(wds(CW)[swap.di])+'</div>'+
+      (swap.note?'<div style="font-size:12px;color:#888;margin-top:3px;">📝 '+swap.note+'</div>':'')+
+      statusDesc+
+      '<div style="font-size:10px;color:#d1d5db;margin-top:.4rem;">'+new Date(swap.ts).toLocaleString('he-IL')+'</div>';
+    container.appendChild(card);
+    // Add approve/reject buttons via DOM for proper event handling
+    if(isTarget && swap.status==='waiting_employee'){
+      const actionDiv=card.querySelector('[data-action="approve"]');
+      if(!actionDiv){
+        const aBox=document.createElement('div');
+        aBox.style.cssText='background:#fef3c7;border-radius:8px;padding:10px 12px;margin-top:.5rem;';
+        aBox.innerHTML='<div style="font-size:13px;color:#92400e;font-weight:600;margin-bottom:8px;">'+(other?other.name:'?')+' מבקש להתחלף איתך. האם תאשר?</div>';
+        const btnRow=document.createElement('div');btnRow.style.cssText='display:flex;gap:8px;';
+        const apprBtn=document.createElement('button');
+        apprBtn.style.cssText='background:#d1fae5;color:#065f46;border:none;border-radius:8px;padding:9px 0;font-size:13px;font-weight:700;cursor:pointer;flex:1;';
+        apprBtn.textContent='✔ אשר';
+        apprBtn.onclick=(function(ww,ss){return function(){empApproveSwap(ww,ss);};})(w,sid);
+        const rejBtn=document.createElement('button');
+        rejBtn.style.cssText='background:#fee2e2;color:#991b1b;border:none;border-radius:8px;padding:9px 0;font-size:13px;font-weight:700;cursor:pointer;flex:1;';
+        rejBtn.textContent='✕ דחה';
+        rejBtn.onclick=(function(ww,ss){return function(){empRejectSwap(ww,ss);};})(w,sid);
+        btnRow.appendChild(apprBtn);btnRow.appendChild(rejBtn);
+        aBox.appendChild(btnRow);card.appendChild(aBox);
+      }
+    }
+    // Remove placeholder
+    card.innerHTML=card.innerHTML.replace('__APPROVE_BTNS__','');
+  });
+}
+
+window.empApproveSwap=async function(w,sid){
+  const swap=await fg('sched/weeks/'+w+'/swaps/'+sid);
+  if(!swap)return;
+  sl(true);
+  await fs('sched/weeks/'+w+'/swaps/'+sid+'/status','waiting_manager');
+  const sh=SHF.find(s=>s.k===swap.shk);
+  // Notify sender that target approved
+  await sendNotifTo(swap.from,'swap','✔ '+CU.name+' אישר את הבקשה',
+    'הבקשה עברה לאישור מנהל — '+sh.l+' '+DAYS[swap.di],w);
+  // Notify manager
+  const fromEmp=(await fg('sched/config/employees')||DEF_EMPS).find(e=>e.id===swap.from);
+  await sendNotifTo('manager','swap','✋ בקשת החלפה לאישור',
+    (fromEmp?fromEmp.name:'?')+' ↔ '+CU.name+' — '+sh.l+' '+DAYS[swap.di]+' — ממתין לאישורך',w);
+  sl(false);
+  rEmpSwaps();
+};
+
+window.empRejectSwap=async function(w,sid){
+  const swap=await fg('sched/weeks/'+w+'/swaps/'+sid);
+  if(!swap)return;
+  sl(true);
+  await fs('sched/weeks/'+w+'/swaps/'+sid+'/status','rejected_by_employee');
+  const sh=SHF.find(s=>s.k===swap.shk);
+  await sendNotifTo(swap.from,'swap_rej','✕ בקשת החלפה נדחתה',
+    CU.name+' דחה את בקשתך להחלפה — '+sh.l+' '+DAYS[swap.di],w);
+  sl(false);
+  rEmpSwaps();
+};
+
+async function rMgrSwaps(){
+  const w=wk(CW);
+  document.getElementById('wt-mswap').textContent=fw(CW);
+  const swaps=await fg('sched/weeks/'+w+'/swaps')||{};
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  const pending=Object.entries(swaps).filter(([,s])=>s.status==='waiting_manager');
+  const history=Object.entries(swaps).filter(([,s])=>s.status!=='waiting_manager'&&s.status!=='waiting_employee');
+  // Badge
+  const badge=document.getElementById('mgr-swap-badge');
+  const allPending=Object.values(swaps).filter(s=>s.status==='waiting_manager').length;
+  if(badge){badge.style.display=allPending?'inline':'none';if(allPending)badge.textContent=allPending;}
+  // Pending section
+  const pendingEl=document.getElementById('mgr-swaps-pending');pendingEl.innerHTML='';
+  if(!pending.length){pendingEl.innerHTML='<div style="color:#888;font-size:13px;text-align:center;padding:1rem;">אין בקשות ממתינות</div>';}
+  pending.sort((a,b)=>(b[1].ts||0)-(a[1].ts||0)).forEach(([sid,swap])=>{
+    const fromEmp=emps.find(e=>e.id===swap.from),toEmp=emps.find(e=>e.id===swap.to);
+    const sh=SHF.find(s=>s.k===swap.shk);
+    const row=document.createElement('div');
+    row.style.cssText='border:1.5px solid var(--prl);border-radius:10px;padding:1rem;margin-bottom:.8rem;background:var(--prll);';
+    row.innerHTML='<div style="font-size:14px;font-weight:700;color:var(--prd);margin-bottom:.4rem;">'+
+      '↔ '+(fromEmp?fromEmp.name:'?')+' ↔ '+(toEmp?toEmp.name:'?')+'</div>'+
+      '<div style="font-size:13px;color:#555;margin-bottom:.4rem;">'+sh.l+' — '+DAYS[swap.di]+' ('+fd(wds(CW)[swap.di])+')</div>'+
+      (swap.note?'<div style="font-size:12px;color:#888;margin-bottom:.4rem;">📝 '+swap.note+'</div>':'')+
+      '<div style="font-size:11px;color:#bbb;margin-bottom:.6rem;">'+new Date(swap.ts).toLocaleString('he-IL')+'</div>';
+    const btns=document.createElement('div');btns.style.cssText='display:flex;gap:8px;';
+    const appr=document.createElement('button');
+    appr.style.cssText='background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;flex:1;';
+    appr.textContent='✔ אשר החלפה';
+    appr.onclick=(()=>{const s=sid,sv=swap;return()=>approveSwap(w,s,sv.from,sv.to,sv.di,sv.shk);})();
+    const rej=document.createElement('button');
+    rej.style.cssText='background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer;flex:1;';
+    rej.textContent='✕ דחה';
+    rej.onclick=(()=>{const s=sid,sv=swap;return()=>rejectSwap(w,s,sv.from,sv.to);})();
+    btns.appendChild(appr);btns.appendChild(rej);row.appendChild(btns);
+    pendingEl.appendChild(row);
+  });
+  // History section
+  const histEl=document.getElementById('mgr-swaps-history');histEl.innerHTML='';
+  if(!history.length){histEl.innerHTML='<div style="color:#888;font-size:13px;text-align:center;padding:.8rem;">אין היסטוריה</div>';return;}
+  history.sort((a,b)=>(b[1].ts||0)-(a[1].ts||0)).forEach(([,swap])=>{
+    const fromEmp=emps.find(e=>e.id===swap.from),toEmp=emps.find(e=>e.id===swap.to);
+    const sh=SHF.find(s=>s.k===swap.shk);
+    const ok=swap.status==='approved';
+    const rejEmp=swap.status==='rejected_by_employee';
+    const statusLabel=ok?'✔ אושר':rejEmp?'✕ נדחה ע"י עובד':'✕ נדחה ע"י מנהל';
+    const statusBgH=ok?'#d1fae5':'#fee2e2';const statusClH=ok?'#065f46':'#991b1b';
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--prl);font-size:12px;';
+    row.innerHTML='<span style="background:'+statusBgH+';color:'+statusClH+';padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap;">'+statusLabel+'</span>'+
+      '<span style="flex:1;color:var(--prd);">'+(fromEmp?fromEmp.name:'?')+' ↔ '+(toEmp?toEmp.name:'?')+'</span>'+
+      '<span style="color:#888;">'+sh.l+' — '+DAYS[swap.di]+'</span>';
+    histEl.appendChild(row);
+  });
+}
+
+window.openSwapNew=async function(){
+  // Open the swap request modal with current week context
+  const w=wk(CW);
+  const sched=await fg('sched/weeks/'+w+'/schedule')||{};
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  // Find shifts this employee is assigned to
+  let assignedShifts=[];
+  for(let di=0;di<7;di++){
+    SHF.forEach(sh=>{
+      const assigned=(sched['d'+di]&&sched['d'+di][sh.k])||[];
+      if(assigned.includes(CU.id))assignedShifts.push({di,shk:sh.k,label:sh.l+' — '+DAYS[di]+' '+fd(wds(CW)[di])});
+    });
+  }
+  if(!assignedShifts.length){alert('אינך משובץ לאף משמרת השבוע');return;}
+  // If only one shift - open directly, else show selection
+  if(assignedShifts.length===1){
+    openSwapReq(w,assignedShifts[0].di,assignedShifts[0].shk);
+  } else {
+    // Show shift picker in swap modal
+    document.getElementById('swap-req-info').innerHTML='<label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:5px;">בחר משמרת להחלפה:</label>'+
+      '<select id="swap-shift-pick" style="width:100%;padding:10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px;outline:none;">'+
+      assignedShifts.map((s,i)=>'<option value="'+i+'">'+s.label+'</option>').join('')+'</select>'+
+      '<button onclick="pickSwapShift()" style="margin-top:8px;width:100%;padding:9px;background:var(--pr);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">המשך</button>';
+    window._assignedShifts=assignedShifts;window._swapW=w;
+    document.getElementById('swap-emp-sel').closest('.fg').style.display='none';
+    document.getElementById('swap-note').closest('.fg').style.display='none';
+    document.querySelector('[onclick="confirmSwapReq()"]').style.display='none';
+    document.getElementById('mo-swap-req').classList.add('op');
+  }
+};
+
+window.toggleVol=async function(w,di,shk){
+  const cur=await fg('sched/weeks/'+w+'/volunteers/d'+di+'/'+shk+'/'+CU.id);
+  sl(true);
+  if(cur){
+    await db.ref('sched/weeks/'+w+'/volunteers/d'+di+'/'+shk+'/'+CU.id).remove();
+  } else {
+    await fs('sched/weeks/'+w+'/volunteers/d'+di+'/'+shk+'/'+CU.id,true);
+    const sh=SHF.find(s=>s.k===shk);
+    await sendNotifTo('manager','volunteer','✋ בקשת התנדבות',CU.name+' נרשם להתנדבות — '+sh.l+' '+DAYS[di],w);
+  }
+  sl(false);await rEmpVol();
+};
+window.volTask=async function(w,tid){
+  const task=await fg('sched/weeks/'+w+'/tasks/'+tid)||{};
+  if((task.emps||[]).includes(CU.id)||(task.pendingVols||[]).includes(CU.id))return;
+  const maxV=task.maxVol||0;
+  const totalSoFar=(task.emps||[]).length+(task.pendingVols||[]).length;
+  if(maxV>0&&totalSoFar>=maxV){alert('ההתנדבות מלאה ('+maxV+' מתנדבים)');return;}
+  const pv=[...(task.pendingVols||[]),CU.id];
+  sl(true);await fs('sched/weeks/'+w+'/tasks/'+tid+'/pendingVols',pv);
+  await sendNotifTo('manager','vol_task','✋ בקשת התנדבות למשימה',CU.name+' מבקש להתנדב ל: '+task.name,w);
+  sl(false);
+  rEmpVol();
+};
+window.approveTaskVol=async function(w,tid,empId){
+  sl(true);
+  const task=await fg('sched/weeks/'+w+'/tasks/'+tid)||{};
+  const newEmps=[...(task.emps||[])];
+  if(!newEmps.includes(empId))newEmps.push(empId);
+  const newPending=(task.pendingVols||[]).filter(id=>id!==empId);
+  await fs('sched/weeks/'+w+'/tasks/'+tid+'/emps',newEmps);
+  await fs('sched/weeks/'+w+'/tasks/'+tid+'/pendingVols',newPending);
+  await sendNotifTo(empId,'vol_approved','✔ התנדבות אושרה! 🎉','המנהל אישר את התנדבותך ל'+task.name+'. תופיע בסידור הסופי.',w);
+  sl(false);
+  rMgrTasks();
+};
+window.rejectTaskVol=async function(w,tid,empId){
+  sl(true);
+  const task=await fg('sched/weeks/'+w+'/tasks/'+tid)||{};
+  const newPending=(task.pendingVols||[]).filter(id=>id!==empId);
+  await fs('sched/weeks/'+w+'/tasks/'+tid+'/pendingVols',newPending);
+  await sendNotifTo(empId,'swap_rej','✕ בקשת התנדבות נדחתה','המנהל דחה את בקשתך להתנדב ל'+task.name,w);
+  sl(false);
+  rMgrTasks();
+};
+window.addEmpTask=async function(w,tid){
+  const sel=document.getElementById('tsel-'+tid);if(!sel||!sel.value)return;
+  const task=await fg('sched/weeks/'+w+'/tasks/'+tid)||{};
+  sl(true);await fs('sched/weeks/'+w+'/tasks/'+tid+'/emps',[...(task.emps||[]),sel.value]);sl(false);rMgrTasks();
+};
+window.remEmpTask=async function(w,tid,empId){
+  const task=await fg('sched/weeks/'+w+'/tasks/'+tid)||{};
+  sl(true);await fs('sched/weeks/'+w+'/tasks/'+tid+'/emps',(task.emps||[]).filter(e=>e!==empId));sl(false);rMgrTasks();
+};
+
+// ===== SETTINGS =====
+async function rMgrSettings(){
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  if(!_bs)_bs=await fg('sched/config/blockSettings')||DEF_BS;
+  document.getElementById('a-m').checked=_bs.allowMorning!==false;
+  document.getElementById('a-e').checked=_bs.allowEvening!==false;
+  document.getElementById('a-n').checked=_bs.allowNight!==false;
+  if(document.getElementById('a-wm'))document.getElementById('a-wm').checked=_bs.allowWeekendMorning!==false;
+  if(document.getElementById('a-we'))document.getElementById('a-we').checked=_bs.allowWeekendEvening!==false;
+  if(document.getElementById('a-wn'))document.getElementById('a-wn').checked=_bs.allowWeekendNight!==false;
+  _wemps=[...emps];
+  rEmpRows(_wemps);
+}
+function rEmpRows(emps){
+  const c=document.getElementById('emp-list');c.innerHTML='';
+  emps.forEach((emp,i)=>{
+    const mb=emp.maxBlocks&&typeof emp.maxBlocks==='object'?emp.maxBlocks:{};
+    const vals={
+      wdM:mb.morning||mb.wdMorning||3,
+      wdE:mb.evening||mb.wdEvening||3,
+      wdN:mb.night||mb.wdNight||3,
+      weM:mb.weekendMorning||mb.weMorning||3,
+      weE:mb.weekendEvening||mb.weEvening||3,
+      weN:mb.weekendNight||mb.weNight||3,
+    };
+    const wrap=document.createElement('div');
+    wrap.style.cssText='border:1px solid var(--prl);border-radius:10px;padding:.6rem;margin-bottom:.6rem;background:var(--prll);';
+
+    // Name/code/type row
+    const row1=document.createElement('div');row1.className='er';row1.style.marginBottom='.4rem';row1.style.border='none';row1.style.background='transparent';row1.style.padding='0';
+    row1.innerHTML='<div class="en">'+(i+1)+'</div>'+
+      '<div style="display:flex;flex-direction:column;flex:1;gap:1px;min-width:70px;"><span class="lt2">שם</span><input class="ei" value="'+emp.name+'" id="sn-'+i+'"></div>'+
+      '<div style="display:flex;flex-direction:column;gap:1px;"><span class="lt2">קוד</span><input class="epi" value="'+emp.pin+'" id="sp-'+i+'" maxlength="4" inputmode="numeric"></div>'+
+      '<div style="display:flex;flex-direction:column;gap:1px;"><span class="lt2">סוג</span>'+
+        '<select class="ets" id="st-'+i+'"><option value="regular" '+(emp.type==='regular'?'selected':'')+'>עובד</option><option value="student" '+(emp.type==='student'?'selected':'')+'>סטודנט</option></select></div>'+
+      '<button class="bd" onclick="delEmpRow('+i+')">×</button>';
+    wrap.appendChild(row1);
+
+    // Weekday max blocks row
+    const wdLbl=document.createElement('div');
+    wdLbl.style.cssText='font-size:10px;font-weight:700;color:var(--prd);margin-bottom:3px;';
+    wdLbl.textContent='📅 מקס חסימות יום רגיל:';wrap.appendChild(wdLbl);
+    const row2=document.createElement('div');row2.style.cssText='display:flex;gap:5px;margin-bottom:.4rem;';
+    row2.innerHTML=
+      '<div style="display:flex;flex-direction:column;gap:1px;flex:1;"><span class="lt2">בוקר</span><input class="emx" type="number" min="0" max="7" value="'+vals.wdM+'" id="smWDM-'+i+'"></div>'+
+      '<div style="display:flex;flex-direction:column;gap:1px;flex:1;"><span class="lt2">ערב</span><input class="emx" type="number" min="0" max="7" value="'+vals.wdE+'" id="smWDE-'+i+'"></div>'+
+      '<div style="display:flex;flex-direction:column;gap:1px;flex:1;"><span class="lt2">לילה</span><input class="emx" type="number" min="0" max="7" value="'+vals.wdN+'" id="smWDN-'+i+'"></div>';
+    wrap.appendChild(row2);
+
+    // Weekend max blocks row
+    const weLbl=document.createElement('div');
+    weLbl.style.cssText='font-size:10px;font-weight:700;color:var(--prm);margin-bottom:3px;';
+    weLbl.textContent='🗓 מקס חסימות סוף שבוע:';wrap.appendChild(weLbl);
+    const row3=document.createElement('div');row3.style.cssText='display:flex;gap:5px;';
+    row3.innerHTML=
+      '<div style="display:flex;flex-direction:column;gap:1px;flex:1;"><span class="lt2">בוקר</span><input class="emx" type="number" min="0" max="7" value="'+vals.weM+'" id="smWEM-'+i+'"></div>'+
+      '<div style="display:flex;flex-direction:column;gap:1px;flex:1;"><span class="lt2">ערב</span><input class="emx" type="number" min="0" max="7" value="'+vals.weE+'" id="smWEE-'+i+'"></div>'+
+      '<div style="display:flex;flex-direction:column;gap:1px;flex:1;"><span class="lt2">לילה</span><input class="emx" type="number" min="0" max="7" value="'+vals.weN+'" id="smWEN-'+i+'"></div>';
+    wrap.appendChild(row3);
+    c.appendChild(wrap);
+  });
+}
+window.addEmpRow=function(){
+  _wemps.forEach((e,i)=>{
+    const n=document.getElementById('sn-'+i),p=document.getElementById('sp-'+i),t=document.getElementById('st-'+i);
+    if(n)e.name=n.value;if(p)e.pin=p.value;if(t)e.type=t.value;
+    e.maxBlocks={
+      wdMorning:parseInt((document.getElementById('smWDM-'+i)||{}).value)||3,
+      wdEvening:parseInt((document.getElementById('smWDE-'+i)||{}).value)||3,
+      wdNight:parseInt((document.getElementById('smWDN-'+i)||{}).value)||3,
+      weekendMorning:parseInt((document.getElementById('smWEM-'+i)||{}).value)||3,
+      weekendEvening:parseInt((document.getElementById('smWEE-'+i)||{}).value)||3,
+      weekendNight:parseInt((document.getElementById('smWEN-'+i)||{}).value)||3,
+    };
+  });
+  _wemps.push({id:'e'+Date.now(),name:'עובד '+(_wemps.length+1),pin:'0000',type:'regular',maxBlocks:{wdMorning:3,wdEvening:3,wdNight:3,weekendMorning:3,weekendEvening:3,weekendNight:3}});
+  rEmpRows(_wemps);
+};
+window.delEmpRow=function(idx){
+  if(_wemps.length<=1){alert('חייב להיות לפחות עובד אחד');return;}
+  if(!confirm('למחוק "'+_wemps[idx].name+'"?'))return;
+  _wemps.splice(idx,1);rEmpRows(_wemps);
+};
+window.saveEmps=async function(){
+  let errs=[];
+  const updated=_wemps.map((emp,i)=>{
+    const n=document.getElementById('sn-'+i),p=document.getElementById('sp-'+i),t=document.getElementById('st-'+i);
+    const nm=n?n.value.trim():emp.name,pn=p?p.value.trim():emp.pin,tp=t?t.value:emp.type;
+    const mx={
+      wdMorning:parseInt((document.getElementById('smWDM-'+i)||{}).value)||3,
+      wdEvening:parseInt((document.getElementById('smWDE-'+i)||{}).value)||3,
+      wdNight:parseInt((document.getElementById('smWDN-'+i)||{}).value)||3,
+      weekendMorning:parseInt((document.getElementById('smWEM-'+i)||{}).value)||3,
+      weekendEvening:parseInt((document.getElementById('smWEE-'+i)||{}).value)||3,
+      weekendNight:parseInt((document.getElementById('smWEN-'+i)||{}).value)||3,
+    };
+    if(!nm)errs.push('שם עובד '+(i+1)+' ריק');
+    if(!/^\d{4}$/.test(pn))errs.push('קוד עובד '+(i+1)+' חייב להיות 4 ספרות');
+    return{...emp,name:nm,pin:pn,type:tp,maxBlocks:mx};
+  });
+  if(errs.length){alert(errs.join('\n'));return;}
+  sl(true);await fs('sched/config/employees',updated);_wemps=updated;sl(false);
+  bls(updated);ssm('sm-emps');
+};
+window.saveGlobalSettings=async function(){
+  const settings={
+    allowMorning:document.getElementById('a-m').checked,
+    allowEvening:document.getElementById('a-e').checked,
+    allowNight:document.getElementById('a-n').checked,
+    allowWeekendMorning:document.getElementById('a-wm').checked,
+    allowWeekendEvening:document.getElementById('a-we').checked,
+    allowWeekendNight:document.getElementById('a-wn').checked,
+  };
+  sl(true);await fs('sched/config/blockSettings',settings);_bs=settings;sl(false);ssm('sm-gs');
+};
+window.resetAllData=async function(){
+  if(!confirm('⚠️ מחיקת כל הנתונים (חסימות, סידורים, התנדבויות, החלפות, התראות)\nאי אפשר לבטל! להמשיך?'))return;
+  if(!confirm('אתה בטוח לגמרי?'))return;
+  sl(true);
+  await db.ref('sched/weeks').remove();
+  await db.ref('sched/notifs').remove();
+  sl(false);
+  alert('✔ כל הנתונים נמחקו');
+  location.reload();
+};
+window.saveMPin=async function(){
+  const cur=document.getElementById('mc').value.trim(),nw=document.getElementById('mn').value.trim(),nw2=document.getElementById('mn2').value.trim();
+  const err=document.getElementById('mpe');err.textContent='';
+  const mgr=await fg('sched/config/manager')||DEF_MGR;
+  if(cur!==mgr.pin){err.textContent='קוד נוכחי שגוי';return;}
+  if(!/^\d{4}$/.test(nw)){err.textContent='קוד חדש חייב להיות 4 ספרות';return;}
+  if(nw!==nw2){err.textContent='הקודים לא תואמים';return;}
+  sl(true);await fs('sched/config/manager',{pin:nw});sl(false);
+  ['mc','mn','mn2'].forEach(id=>document.getElementById(id).value='');ssm('sm-mp');
+};
+</script>
+</body>
+</html>
