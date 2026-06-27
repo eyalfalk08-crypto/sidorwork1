@@ -1697,8 +1697,18 @@ async function registerSW(){
 }
 
 // OneSignal App ID - replace with yours from onesignal.com
-const ONESIGNAL_APP_ID = '6f6d14d6-4e4d-43b7-bee7-fd5a3f189735';
+const ONESIGNAL_APP_ID = '6f6d14d6-4e4d-43b7-bee7-fd5a3f189735'; 
+  const WORKER_URL = 'https://onesignal-push.eyalfalk08.workers.dev';
 
+  async function sendPushToUser(targetId, title, body){
+  try{
+    await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({targetId, title, body})
+    });
+  }catch(e){console.log('Push failed:', e);}
+}
 function triggerPush(title,body,tag){
   // In-app: use SW showNotification (tab open)
   if(_swReg&&Notification.permission==='granted'){
@@ -1707,23 +1717,7 @@ function triggerPush(title,body,tag){
   }
 }
 
-// Send OneSignal push to specific external user IDs
-// OneSignal push - stores pending notifications in Firebase
-// OneSignal SDK will deliver them when user is subscribed
-async function oneSignalPushToUser(extUserId,title,body){
-  // Store in Firebase - OneSignal listener picks it up per user
-  // The actual push is handled by OneSignal SDK via subscription
-  if(!window.OneSignal)return;
-  try{
-    // Tag the current user so we can target them
-    await window.OneSignal.User.addTag('userId',extUserId);
-  }catch(e){}
-}
-
-async function oneSignalPushToAll(title,body){
-  // OneSignal will send to all subscribed users automatically
-  // via the Firebase listener + OneSignal subscription
-  if(!window.OneSignal)return;
+await sendPushToUser(key, title, body);
 }
 
 async function requestPushPermission(){
@@ -1747,7 +1741,8 @@ async function sendNotifToAll(w,type,title,body){
   await db.ref().update(updates);
   triggerPush(title,body,type);
   // OneSignal push to ALL users (works when app closed)
-  oneSignalPushToAll(title,body);
+  for(const e of emps){ await sendPushToUser(e.id, title, body); }
+await sendPushToUser('manager', title, body);
 }
 
 async function sendNotifTo(empId,type,title,body,w){
@@ -1826,11 +1821,10 @@ async function startNotifListener(){
   if(!CU)return;
   const key=CU.id==='mgr'?'manager':CU.id;
   // Tag user in OneSignal for targeting
-  if(window.OneSignal){
+ if(window.OneSignal){
     try{
+      await OneSignal.login(key);
       await window.OneSignal.User.addTag('userId',key);
-      await window.OneSignal.User.addTag('name',CU.name||'');
-    }catch(e){}
   }
   // Live Firebase listener - updates badge in real time
   db.ref('sched/notifs/'+key).on('value',snap=>{
