@@ -1691,7 +1691,7 @@ let _swReg=null;
 async function registerSW(){
   if(!('serviceWorker' in navigator))return;
   try{
-    _swReg=await navigator.serviceWorker.register('sw.js',{scope:'./'});
+    _swReg=await navigator.serviceWorker.register('OneSignalSDKWorker.js',{scope:'./'});
     console.log('SW registered');
   }catch(e){console.log('SW failed:',e);}
 }
