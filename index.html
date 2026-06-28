@@ -514,6 +514,9 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);colo
   <div class="mb" style="max-width:400px;">
     <button class="mc" onclick="cm('mo-swap-req')">✕</button>
     <h3>בקשת החלפת משמרת</h3>
+    <input type="hidden" id="swap-w-hidden">
+<input type="hidden" id="swap-di-hidden">
+<input type="hidden" id="swap-shk-hidden">
     <div id="swap-req-info" style="background:var(--prll);border-radius:9px;padding:.8rem;margin-bottom:.8rem;font-size:13px;color:var(--prd);font-weight:600;"></div>
     <div class="fg">
       <label>בחר עובד להחלפה</label>
@@ -1861,7 +1864,8 @@ OneSignalDeferred.push(async function(OneSignal) {
 // ===== SWAP REQUESTS =====
 let _pendSwap=null;
 window.openSwapReq=async function(w,di,shk){
-  _pendSwap={w,di,shk};
+  _pendSwap={w:w,di:di,shk:shk};
+  window._lastPendSwap={w:w,di:di,shk:shk};
   const emps=await fg('sched/config/employees')||DEF_EMPS;
   const sched=await fg('sched/weeks/'+w+'/schedule/d'+di+'/'+shk)||[];
   const sh=SHF.find(s=>s.k===shk);
@@ -1887,10 +1891,16 @@ window.pickSwapShift=function(){
   if(!pick)return;
  _pendSwap={w:window._swapW,di:pick.di,shk:pick.shk};
 cm('mo-swap-req');
-openSwapReq(window._swapW,pick.di,pick.shk);
 };
 window.confirmSwapReq=async function(){
-  if(!_pendSwap)return;
+  if(!_pendSwap){
+    // Try to get from hidden fields
+    const w=document.getElementById('swap-w-hidden')?.value;
+    const di=parseInt(document.getElementById('swap-di-hidden')?.value);
+    const shk=document.getElementById('swap-shk-hidden')?.value;
+    if(!w||isNaN(di)||!shk){showToast('שגיאה — נסה שוב');return;}
+    _pendSwap={w,di,shk};
+  }
   const {w,di,shk}=_pendSwap;
   const targetId=document.getElementById('swap-emp-sel').value;
   const note=document.getElementById('swap-note').value.trim();
