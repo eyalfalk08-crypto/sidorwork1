@@ -2077,6 +2077,7 @@ window.confirmSwapReq=async function(){
   sl(false);
   cm('mo-swap-req');
   alert('הבקשה נשלחה!');
+  rEmpSwaps();
 };
 window.openSwapMgr=async function(w){
   const swaps=await fg('sched/weeks/'+w+'/swaps')||{};
