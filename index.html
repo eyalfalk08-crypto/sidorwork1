@@ -1885,8 +1885,9 @@ window.pickSwapShift=function(){
   const idx=parseInt(document.getElementById('swap-shift-pick').value);
   const pick=window._assignedShifts[idx];
   if(!pick)return;
-  cm('mo-swap-req');
-  openSwapReq(window._swapW,pick.di,pick.shk);
+ _pendSwap={w:window._swapW,di:pick.di,shk:pick.shk};
+cm('mo-swap-req');
+openSwapReq(window._swapW,pick.di,pick.shk);
 };
 window.confirmSwapReq=async function(){
   if(!_pendSwap)return;
