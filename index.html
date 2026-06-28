@@ -418,6 +418,51 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);colo
       <button class="bp" onclick="saveEmps()">שמור שינויים</button>
       <div class="sm" id="sm-emps">נשמר!</div>
     </div>
+    <div class="card">
+  <h3>אילוצי משמרת — מינ׳/מקס׳ עובדים (לסידור אוטומטי)</h3>
+  <p style="font-size:11px;color:#888;margin-bottom:.8rem;">משפיע על הסידור האוטומטי בלבד</p>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="background:var(--prll);">
+      <th style="padding:8px;text-align:right;">משמרת</th>
+      <th style="padding:8px;text-align:center;">מינ׳</th>
+      <th style="padding:8px;text-align:center;">מקס׳</th>
+    </tr></thead>
+    <tbody>
+      <tr style="border-bottom:1px solid var(--prl);">
+        <td style="padding:8px;font-weight:600;">🌅 בוקר</td>
+        <td style="padding:6px;text-align:center;"><input type="number" id="sc-min-morning" min="0" max="20" value="2" style="width:55px;padding:5px;border:1.5px solid #e5e7eb;border-radius:7px;text-align:center;font-size:13px;outline:none;"></td>
+        <td style="padding:6px;text-align:center;"><input type="number" id="sc-max-morning" min="0" max="20" value="5" style="width:55px;padding:5px;border:1.5px solid #e5e7eb;border-radius:7px;text-align:center;font-size:13px;outline:none;"></td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--prl);">
+        <td style="padding:8px;font-weight:600;">🌆 ערב</td>
+        <td style="padding:6px;text-align:center;"><input type="number" id="sc-min-evening" min="0" max="20" value="2" style="width:55px;padding:5px;border:1.5px solid #e5e7eb;border-radius:7px;text-align:center;font-size:13px;outline:none;"></td>
+        <td style="padding:6px;text-align:center;"><input type="number" id="sc-max-evening" min="0" max="20" value="5" style="width:55px;padding:5px;border:1.5px solid #e5e7eb;border-radius:7px;text-align:center;font-size:13px;outline:none;"></td>
+      </tr>
+      <tr>
+        <td style="padding:8px;font-weight:600;">🌙 לילה</td>
+        <td style="padding:6px;text-align:center;"><input type="number" id="sc-min-night" min="0" max="20" value="1" style="width:55px;padding:5px;border:1.5px solid #e5e7eb;border-radius:7px;text-align:center;font-size:13px;outline:none;"></td>
+        <td style="padding:6px;text-align:center;"><input type="number" id="sc-max-night" min="0" max="20" value="3" style="width:55px;padding:5px;border:1.5px solid #e5e7eb;border-radius:7px;text-align:center;font-size:13px;outline:none;"></td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="margin-top:.8rem;background:var(--prll);border-radius:9px;padding:.7rem;">
+    <div style="font-size:11px;font-weight:700;color:var(--prd);margin-bottom:.4rem;">⚙️ תנאים נוספים</div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:.3rem;">
+      <input type="number" id="sc-min-shifts" min="0" max="21" value="5" style="width:55px;padding:5px;border:1.5px solid #e5e7eb;border-radius:7px;text-align:center;font-size:13px;outline:none;">
+      מינ׳ משמרות לעובד בשבוע
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:.3rem;">
+      <input type="number" id="sc-max-shifts" min="0" max="21" value="7" style="width:55px;padding:5px;border:1.5px solid #e5e7eb;border-radius:7px;text-align:center;font-size:13px;outline:none;">
+      מקס׳ משמרות לעובד בשבוע
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+      <input type="checkbox" id="sc-no-consec" checked style="accent-color:var(--pr);width:15px;height:15px;">
+      מרווח לפחות משמרת אחת בין משמרות לאותו עובד
+    </label>
+  </div>
+  <button class="bp" onclick="saveShiftConstraints()">שמור אילוצים</button>
+  <div class="sm" id="sm-sc">נשמר!</div>
+</div>
     <div class="card" style="max-width:300px;">
       <h3>ניקוי נתונים</h3>
       <p style="font-size:12px;color:#888;margin-bottom:.8rem;">מחיקת כל הנתונים שנצברו (חסימות, סידורים, התנדבויות, התראות)</p>
@@ -1242,38 +1287,85 @@ window.rejectVol=async function(w,di,shk,empId){
   sl(false);cm('mo-vol');rMgrSched();
 };
 
+window.saveShiftConstraints=async function(){
+  const sc={
+    minMorning:parseInt(document.getElementById('sc-min-morning').value)||0,
+    maxMorning:parseInt(document.getElementById('sc-max-morning').value)||99,
+    minEvening:parseInt(document.getElementById('sc-min-evening').value)||0,
+    maxEvening:parseInt(document.getElementById('sc-max-evening').value)||99,
+    minNight:parseInt(document.getElementById('sc-min-night').value)||0,
+    maxNight:parseInt(document.getElementById('sc-max-night').value)||99,
+    minShiftsPerEmp:parseInt(document.getElementById('sc-min-shifts').value)||0,
+    maxShiftsPerEmp:parseInt(document.getElementById('sc-max-shifts').value)||99,
+    noConsecutive:document.getElementById('sc-no-consec').checked,
+  };
+  sl(true);await fs('sched/config/shiftConstraints',sc);sl(false);ssm('sm-sc');
+};
+async function loadShiftConstraints(){
+  const sc=await fg('sched/config/shiftConstraints')||{};
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
+  const setc=(id,v)=>{const el=document.getElementById(id);if(el)el.checked=v;};
+  set('sc-min-morning',sc.minMorning??2);set('sc-max-morning',sc.maxMorning??5);
+  set('sc-min-evening',sc.minEvening??2);set('sc-max-evening',sc.maxEvening??5);
+  set('sc-min-night',sc.minNight??1);set('sc-max-night',sc.maxNight??3);
+  set('sc-min-shifts',sc.minShiftsPerEmp??5);set('sc-max-shifts',sc.maxShiftsPerEmp??7);
+  setc('sc-no-consec',sc.noConsecutive!==false);
+  return sc;
+}
 window.autoAssign=async function(){
-  if(!confirm('שיבוץ אוטומטי ייצור סידור חדש לפי חסימות. להמשיך?'))return;
-  const w=wk(CW);
+  if(!confirm('שיבוץ אוטומטי ייצור סידור חדש לפי חסימות ואילוצים. להמשיך?'))return;
+  const w=wk(CW);sl(true);
   const emps=await fg('sched/config/employees')||DEF_EMPS;
   const blocks=await fg('sched/weeks/'+w+'/blocks')||{};
-  const newS={};let idx=0;
-  wds(CW).forEach((date,di)=>{
-    const isWE=di>=5;newS['d'+di]={};
-    SHF.forEach(sh=>{
-      const avail=emps.filter(e=>!(blocks[e.id]&&blocks[e.id]['d'+di]&&blocks[e.id]['d'+di][sh.k]));
-      const pick=[];for(let k=0;k<2&&avail.length>0;k++){pick.push(avail[(idx+k)%avail.length].id);}
-      newS['d'+di][sh.k]=pick;idx++;
+  const sc=await fg('sched/config/shiftConstraints')||{};
+  const minM=sc.minMorning??2,maxM=sc.maxMorning??5;
+  const minE=sc.minEvening??2,maxE=sc.maxEvening??5;
+  const minN=sc.minNight??1,maxN=sc.maxNight??3;
+  const minShifts=sc.minShiftsPerEmp??5,maxShifts=sc.maxShiftsPerEmp??7;
+  const noConsec=sc.noConsecutive!==false;
+  const newS={};
+  for(let di=0;di<7;di++){newS['d'+di]={};SHF.forEach(sh=>{newS['d'+di][sh.k]=[];});}
+  const empCnt={};emps.forEach(e=>{empCnt[e.id]=0;});
+  const empLast={};emps.forEach(e=>{empLast[e.id]=-99;});
+  function si(di,shk){return di*3+SHF.findIndex(s=>s.k===shk);}
+  function mm(shk){if(shk==='morning')return{min:minM,max:maxM};if(shk==='evening')return{min:minE,max:maxE};return{min:minN,max:maxN};}
+  function avail(di,shk){
+    return emps.filter(e=>{
+      if(blocks[e.id]&&blocks[e.id]['d'+di]&&blocks[e.id]['d'+di][shk])return false;
+      if(empCnt[e.id]>=maxShifts)return false;
+      if(noConsec&&Math.abs(si(di,shk)-empLast[e.id])<=1)return false;
+      if(newS['d'+di][shk].includes(e.id))return false;
+      return true;
+    }).sort((a,b)=>empCnt[a.id]-empCnt[b.id]);
+  }
+  const allSlots=[];
+  for(let di=0;di<7;di++)SHF.forEach(sh=>allSlots.push({di,shk:sh.k}));
+  // Fill minimums first
+  allSlots.forEach(({di,shk})=>{
+    const {min,max}=mm(shk);
+    avail(di,shk).slice(0,min).forEach(emp=>{
+      newS['d'+di][shk].push(emp.id);empCnt[emp.id]++;empLast[emp.id]=si(di,shk);
     });
   });
-  sl(true);await fs('sched/weeks/'+w+'/schedule',newS);sl(false);rMgrSched();
-};
-let _mgrBlkEmpId=null,_mgrBlkW=null,_mgrBlkData={};
-
-window.openMgrBlockEdit=async function(empId,empName){
-  _mgrBlkEmpId=empId;
-  _mgrBlkW=wk(CW);
-  sl(true);
-  const empBlocks=await fg('sched/weeks/'+_mgrBlkW+'/blocks/'+empId)||{};
-  sl(false);
-  _mgrBlkData={};
-  for(let di=0;di<7;di++){
-    _mgrBlkData['d'+di]={};
-    SHF.forEach(sh=>{_mgrBlkData['d'+di][sh.k]=(empBlocks['d'+di]&&empBlocks['d'+di][sh.k])||false;});
+  // Reach min shifts per emp
+  let changed=true,iter=0;
+  while(changed&&iter<15){changed=false;iter++;
+    emps.filter(e=>empCnt[e.id]<minShifts).forEach(emp=>{
+      allSlots.forEach(({di,shk})=>{
+        if(empCnt[emp.id]>=minShifts)return;
+        const {max}=mm(shk);
+        if(newS['d'+di][shk].length>=max)return;
+        if(blocks[emp.id]&&blocks[emp.id]['d'+di]&&blocks[emp.id]['d'+di][shk])return;
+        if(noConsec&&Math.abs(si(di,shk)-empLast[emp.id])<=1)return;
+        if(newS['d'+di][shk].includes(emp.id))return;
+        newS['d'+di][shk].push(emp.id);empCnt[emp.id]++;empLast[emp.id]=si(di,shk);changed=true;
+      });
+    });
   }
-  document.getElementById('mgrblk-title').textContent='עריכת חסימות — '+empName;
-  buildMgrBlkTable();
-  document.getElementById('mo-mgrblocks').classList.add('op');
+  await fs('sched/weeks/'+w+'/schedule',newS);sl(false);
+  const under=emps.filter(e=>empCnt[e.id]<minShifts).map(e=>e.name);
+  if(under.length)alert('⚠️ הסידור הושלם, אך '+under.join(', ')+' קיבלו פחות מ-'+minShifts+' משמרות (חסימות)');
+  rMgrSched();
 };
 
 function buildMgrBlkTable(){
@@ -2255,6 +2347,7 @@ async function rMgrSettings(){
   if(document.getElementById('a-wm'))document.getElementById('a-wm').checked=_bs.allowWeekendMorning!==false;
   if(document.getElementById('a-we'))document.getElementById('a-we').checked=_bs.allowWeekendEvening!==false;
   if(document.getElementById('a-wn'))document.getElementById('a-wn').checked=_bs.allowWeekendNight!==false;
+  await loadShiftConstraints();
   _wemps=[...emps];
   rEmpRows(_wemps);
 }
