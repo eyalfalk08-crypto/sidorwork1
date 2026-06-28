@@ -1866,6 +1866,9 @@ let _pendSwap=null;
 window.openSwapReq=async function(w,di,shk){
   _pendSwap={w:w,di:di,shk:shk};
   window._lastPendSwap={w:w,di:di,shk:shk};
+  document.getElementById('swap-w-hidden').value=w;
+document.getElementById('swap-di-hidden').value=di;
+document.getElementById('swap-shk-hidden').value=shk;
   const emps=await fg('sched/config/employees')||DEF_EMPS;
   const sched=await fg('sched/weeks/'+w+'/schedule/d'+di+'/'+shk)||[];
   const sh=SHF.find(s=>s.k===shk);
@@ -1911,14 +1914,26 @@ window.pickSwapShift=async function(){
   if(confBtn)confBtn.style.display='';
 };
 window.confirmSwapReq=async function(){
-  if(!_pendSwap){
-    // Try to get from hidden fields
-    const w=document.getElementById('swap-w-hidden')?.value;
-    const di=parseInt(document.getElementById('swap-di-hidden')?.value);
-    const shk=document.getElementById('swap-shk-hidden')?.value;
-    if(!w||isNaN(di)||!shk){showToast('שגיאה — נסה שוב');return;}
-    _pendSwap={w,di,shk};
-  }
+  const w=document.getElementById('swap-w-hidden').value||(_pendSwap&&_pendSwap.w);
+  const di=parseInt(document.getElementById('swap-di-hidden').value||(_pendSwap&&_pendSwap.di));
+  const shk=document.getElementById('swap-shk-hidden').value||(_pendSwap&&_pendSwap.shk);
+  if(!w||isNaN(di)||!shk){alert('שגיאה — נסה שוב');return;}
+  const targetId=document.getElementById('swap-emp-sel').value;
+  const note=document.getElementById('swap-note').value.trim();
+  if(!targetId)return;
+  const ts=Date.now();
+  const sh=SHF.find(s=>s.k===shk);
+  sl(true);
+  await fs('sched/weeks/'+w+'/swaps/s'+ts,{
+    from:CU.id,to:targetId,di,shk,note,ts,
+    status:'waiting_employee',week:w
+  });
+  await sendNotifTo(targetId,'swap','↔ בקשת החלפה חדשה',
+    CU.name+' מבקש להתחלף איתך — '+sh.l+' '+DAYS[di]+'. לחץ על לשונית ״החלפות״ לאישור/דחייה',w);
+  sl(false);
+  cm('mo-swap-req');
+  alert('הבקשה נשלחה!');
+};
   const {w,di,shk}=_pendSwap;
   const targetId=document.getElementById('swap-emp-sel').value;
   const note=document.getElementById('swap-note').value.trim();
