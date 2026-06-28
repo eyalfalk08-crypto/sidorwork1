@@ -2551,6 +2551,7 @@ async function loadReminder(){
 }
 async function checkReminder(){
   const cfg=await fg('sched/config/reminder')||{};
+  console.log('checkReminder cfg:',cfg);
   if(!cfg.enabled||!cfg.text)return;
   const w=wk(CW);
   const dlData=await fg('sched/weeks/'+w+'/deadline')||{};
