@@ -735,14 +735,13 @@ async function enterEmp(){
   });
   eTab('blocks');
   startNotifListener();
-  // Update swap badge
-  setTimeout(async()=>{
-    const w=wk(CW);
-    const swaps=await fg('sched/weeks/'+w+'/swaps')||{};
-    const pending=Object.values(swaps).filter(s=>(s.from===CU.id||s.to===CU.id)&&s.status==='pending').length;
+  // Update swap badge - realtime
+db.ref('sched/weeks/'+wk(CW)+'/swaps').on('value',snap=>{
+    const swaps=snap.val()||{};
+    const pending=Object.values(swaps).filter(s=>(s.from===CU.id||s.to===CU.id)&&s.status==='waiting_employee').length;
     const badge=document.getElementById('emp-swap-badge');
     if(badge){badge.style.display=pending?'inline':'none';if(pending)badge.textContent=pending;}
-  },500);
+  });
 }
 async function enterMgr(){
   document.getElementById('ls').style.display='none';document.getElementById('app').style.display='block';
