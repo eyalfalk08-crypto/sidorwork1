@@ -2551,11 +2551,11 @@ async function loadReminder(){
 }
 async function checkReminder(){
   const cfg=await fg('sched/config/reminder')||{};
-  console.log('checkReminder cfg:',cfg);
+  
   if(!cfg.enabled||!cfg.text){console.log('reminder disabled or no text');return;}
   const w=wk(CW);
   const dlData=await fg('sched/weeks/'+w+'/deadline')||{};
- console.log('deadline data:',dlData);
+ 
   if(!dlData.time)return;
   const dl=new Date(dlData.time);
   const now=new Date();
