@@ -2560,7 +2560,7 @@ async function checkReminder(){
   const dl=new Date(dlData.time);
   const now=new Date();
   const diffHours=(dl-now)/(1000*60*60);
-  if(diffHours<0||diffHours>cfg.hours)return;
+  if(diffHours<0||diffHours>cfg.hours+0.5)return;
   const lastSent=await fg('sched/weeks/'+w+'/reminderSent')||0;
   if(Date.now()-lastSent<60*60*1000)return;
   await fs('sched/weeks/'+w+'/reminderSent',Date.now());
