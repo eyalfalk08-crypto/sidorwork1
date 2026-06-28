@@ -480,6 +480,33 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);colo
   </div>
   <button class="bp" onclick="saveShiftConstraints()">שמור אילוצים</button>
   <div class="sm" id="sm-sc">נשמר!</div>
+   <div class="card" style="max-width:300px;">
+      <h3>דד-ליין מחזורי אוטומטי</h3>
+      <div style="display:flex;flex-direction:column;gap:.7rem;">
+        <label style="font-size:12px;font-weight:700;color:#555;">
+          <input type="checkbox" id="adl-enabled" style="accent-color:var(--pr);width:15px;height:15px;margin-left:6px;">
+          הפעל דד-ליין אוטומטי שבועי
+        </label>
+        <div class="fg">
+          <label>יום בשבוע</label>
+          <select id="adl-day" style="width:100%;padding:8px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;">
+            <option value="0">ראשון</option>
+            <option value="1">שני</option>
+            <option value="2">שלישי</option>
+            <option value="3">רביעי</option>
+            <option value="4">חמישי</option>
+            <option value="5">שישי</option>
+            <option value="6">שבת</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>שעה</label>
+          <input type="time" id="adl-time" value="10:00" style="width:100%;padding:8px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;">
+        </div>
+        <button class="bp" onclick="saveAutoDeadline()" style="margin-top:0;">שמור</button>
+        <div class="sm" id="sm-adl">נשמר!</div>
+      </div>
+    </div>
     <div class="card" style="max-width:300px;">
       <h3>ניקוי נתונים</h3>
       <p style="font-size:12px;color:#888;margin-bottom:.8rem;">מחיקת כל הנתונים שנצברו (חסימות, סידורים, התנדבויות, התראות)</p>
@@ -728,6 +755,7 @@ async function enterMgr(){
   });
   mTab('sched');
   startNotifListener();
+  checkAutoDeadline();
 }
 
 function cw(d){const dt=new Date(CW);dt.setDate(dt.getDate()+d*7);CW=dt;
@@ -2359,7 +2387,7 @@ window.remEmpTask=async function(w,tid,empId){
 };
 
 // ===== SETTINGS =====
-async function rMgrSettings(){
+async function checkAutoDeadline(){   const cfg=await fg('sched/config/autoDeadline')||{};   if(!cfg.enabled||cfg.day===undefined||!cfg.time)return;   const w=wk(CW);   const existing=await fg('sched/weeks/'+w+'/deadline/time');   if(existing)return;   const now=new Date();   const wStart=new Date(CW);   const dl=new Date(wStart);   dl.setDate(dl.getDate()+((cfg.day-wStart.getDay()+7)%7));   const [h,m]=cfg.time.split(':');   dl.setHours(parseInt(h),parseInt(m),0,0);   const dlStr=dl.getFullYear()+'-'+String(dl.getMonth()+1).padStart(2,'0')+'-'+String(dl.getDate()).padStart(2,'0')+'T'+cfg.time;   await fs('sched/weeks/'+w+'/deadline/time',dlStr);   await sendNotifToAll(w,'deadline','⏰ דד-ליין אוטומטי','יש להגיש חסימות עד '+dl.toLocaleDateString('he-IL')+' '+cfg.time+' לשבוע '+fw(CW)); } async function rMgrSettings(){
   const emps=await fg('sched/config/employees')||DEF_EMPS;
   if(!_bs)_bs=await fg('sched/config/blockSettings')||DEF_BS;
   document.getElementById('a-m').checked=_bs.allowMorning!==false;
@@ -2368,7 +2396,7 @@ async function rMgrSettings(){
   if(document.getElementById('a-wm'))document.getElementById('a-wm').checked=_bs.allowWeekendMorning!==false;
   if(document.getElementById('a-we'))document.getElementById('a-we').checked=_bs.allowWeekendEvening!==false;
   if(document.getElementById('a-wn'))document.getElementById('a-wn').checked=_bs.allowWeekendNight!==false;
-  await loadShiftConstraints();
+  await loadShiftConstraints();   await loadAutoDeadline();
   _wemps=[...emps];
   rEmpRows(_wemps);
 }
@@ -2474,7 +2502,7 @@ window.saveGlobalSettings=async function(){
   };
   sl(true);await fs('sched/config/blockSettings',settings);_bs=settings;sl(false);ssm('sm-gs');
 };
-window.resetAllData=async function(){
+window.saveAutoDeadline=async function(){   const enabled=document.getElementById('adl-enabled').checked;   const day=parseInt(document.getElementById('adl-day').value);   const time=document.getElementById('adl-time').value;   sl(true);   await fs('sched/config/autoDeadline',{enabled,day,time});   sl(false);   ssm('sm-adl'); }; async function loadAutoDeadline(){   const cfg=await fg('sched/config/autoDeadline')||{};   const el=document.getElementById('adl-enabled');   const dl=document.getElementById('adl-day');   const tl=document.getElementById('adl-time');   if(el)el.checked=cfg.enabled||false;   if(dl)dl.value=cfg.day||0;   if(tl)tl.value=cfg.time||'10:00'; } window.resetAllData=async function(){
   if(!confirm('⚠️ מחיקת כל הנתונים (חסימות, סידורים, התנדבויות, החלפות, התראות)\nאי אפשר לבטל! להמשיך?'))return;
   if(!confirm('אתה בטוח לגמרי?'))return;
   sl(true);
