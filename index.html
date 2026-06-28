@@ -1886,7 +1886,7 @@ window.pickSwapShift=function(){
   const pick=window._assignedShifts[idx];
   if(!pick)return;
   cm('mo-swap-req');
-  setTimeout(()=>openSwapReq(window._swapW,pick.di,pick.shk),100);
+  openSwapReq(window._swapW,pick.di,pick.shk);
 };
 window.confirmSwapReq=async function(){
   if(!_pendSwap)return;
