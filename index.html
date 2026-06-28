@@ -1893,6 +1893,9 @@ window.pickSwapShift=async function(){
   const pick=window._assignedShifts[idx];
   if(!pick)return;
   _pendSwap={w:window._swapW,di:pick.di,shk:pick.shk};
+document.getElementById('swap-w-hidden').value=window._swapW;
+document.getElementById('swap-di-hidden').value=pick.di;
+document.getElementById('swap-shk-hidden').value=pick.shk;
   const sh=SHF.find(s=>s.k===pick.shk);
   const emps=await fg('sched/config/employees')||DEF_EMPS;
   const sched=await fg('sched/weeks/'+window._swapW+'/schedule/d'+pick.di+'/'+pick.shk)||[];
