@@ -1196,7 +1196,7 @@ async function rMgrSched(){
   const sched=await fg('sched/weeks/'+w+'/schedule')||{};
   const emps=await fg('sched/config/employees')||DEF_EMPS;
  const blocks=await fg('sched/weeks/'+w+'/blocks')||{};
-  const taskData2=await fg('sched/weeks/'+w+'/tasks')||{};   
+     
   const vols=await fg('sched/weeks/'+w+'/volunteers')||{};
   const notes=await fg('sched/weeks/'+w+'/shiftNotes')||{};
   const tasks=await fg('sched/weeks/'+w+'/tasks')||{};
