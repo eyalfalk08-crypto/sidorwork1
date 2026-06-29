@@ -1408,7 +1408,7 @@ async function loadShiftConstraints(){
   set('sc-min-evening',sc.minEvening??2);set('sc-max-evening',sc.maxEvening??5);
   set('sc-min-night',sc.minNight??1);set('sc-max-night',sc.maxNight??3);
   set('sc-min-shifts',sc.minShiftsPerEmp??5);set('sc-max-shifts',sc.maxShiftsPerEmp??7);
-  setc('sc-no-consec',sc.noConsecutive!==false);
+  setc('sc-no-consec',sc.noConsecutive!==false);   set('sh-morning-start',sc.shMorningStart||'07:00');   set('sh-morning-end',sc.shMorningEnd||'15:00');   set('sh-evening-start',sc.shEveningStart||'15:00');   set('sh-evening-end',sc.shEveningEnd||'23:00');   set('sh-night-start',sc.shNightStart||'23:00');   set('sh-night-end',sc.shNightEnd||'07:00');
   return sc;
 }
 window.autoAssign=async function(){
