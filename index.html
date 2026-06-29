@@ -1377,6 +1377,13 @@ window.saveShiftConstraints=async function(){
     minShiftsPerEmp:parseInt(document.getElementById('sc-min-shifts').value)||0,
     maxShiftsPerEmp:parseInt(document.getElementById('sc-max-shifts').value)||99,
     noConsecutive:document.getElementById('sc-no-consec').checked,
+    weMinMorning:parseInt(document.getElementById('sc-we-min-morning').value)||0,
+    weMaxMorning:parseInt(document.getElementById('sc-we-max-morning').value)||99,
+    weMinEvening:parseInt(document.getElementById('sc-we-min-evening').value)||0,
+    weMaxEvening:parseInt(document.getElementById('sc-we-max-evening').value)||99,
+    weMinNight:parseInt(document.getElementById('sc-we-min-night').value)||0,
+    weMaxNight:parseInt(document.getElementById('sc-we-max-night').value)||99,
+  };
   };
   sl(true);await fs('sched/config/shiftConstraints',sc);sl(false);ssm('sm-sc');
 };
