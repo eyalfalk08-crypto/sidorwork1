@@ -1789,7 +1789,7 @@ async function rMgrTasks(){
 function openAddTaskModal(){
   _editTid=null;_editW=null;
   ['tk-name','tk-date','tk-hours','tk-note'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('tk-maxvol').value='0';
+  document.getElementById('tk-maxvol').value='0';   document.getElementById('tk-minemp').value='1';   document.getElementById('tk-maxemp').value='3';
   document.getElementById('tk-modal-title').textContent='הוסף משמרת / משימה';
   document.getElementById('tk-save-btn').textContent='שמור';
   document.getElementById('mo-addtask').classList.add('op');
