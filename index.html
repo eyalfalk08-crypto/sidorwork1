@@ -1396,7 +1396,7 @@ window.autoAssign=async function(){
   const w=wk(CW);sl(true);
   const emps=await fg('sched/config/employees')||DEF_EMPS;
   const blocks=await fg('sched/weeks/'+w+'/blocks')||{};
-  const sc=await fg('sched/config/shiftConstraints')||{};   const taskData3=await fg('sched/weeks/'+w+'/tasks')||{};   console.log('data loaded',JSON.stringify(sc));
+  const sc=await fg('sched/config/shiftConstraints')||{};   const taskData3=await fg('sched/weeks/'+w+'/tasks')||{};   console.log('data loaded',typeof sc, sc===null, sc===undefined);
   const minM=sc.minMorning??2,maxM=sc.maxMorning??5;
   const minE=sc.minEvening??2,maxE=sc.maxEvening??5;
   const minN=sc.minNight??1,maxN=sc.maxNight??3;
