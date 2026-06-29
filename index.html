@@ -1391,6 +1391,12 @@ window.saveShiftConstraints=async function(){
     weMaxEvening:parseInt(document.getElementById('sc-we-max-evening').value)||99,
     weMinNight:parseInt(document.getElementById('sc-we-min-night').value)||0,
    weMaxNight:parseInt(document.getElementById('sc-we-max-night').value)||99,
+    shMorningStart:document.getElementById('sh-morning-start').value||'07:00',
+    shMorningEnd:document.getElementById('sh-morning-end').value||'15:00',
+    shEveningStart:document.getElementById('sh-evening-start').value||'15:00',
+    shEveningEnd:document.getElementById('sh-evening-end').value||'23:00',
+    shNightStart:document.getElementById('sh-night-start').value||'23:00',
+    shNightEnd:document.getElementById('sh-night-end').value||'07:00',
   };
   sl(true);await fs('sched/config/shiftConstraints',sc);sl(false);ssm('sm-sc');
 };
