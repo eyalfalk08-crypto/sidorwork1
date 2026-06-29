@@ -1255,22 +1255,34 @@ inner+='<div style="font-size:9px;font-weight:700;color:'+cntColor+';text-align:
 inner+='<button class="ab" onclick="openAddEmpModal(\''+w+'\','+di+',\''+sh.k+'\')">+ הוסף עובד</button>';
       sb.innerHTML=inner;col.appendChild(sb);
     });
-    // Show tasks for this day in mgr schedule
+  // Show tasks inside shift blocks
     const dayStr3=date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
-    Object.entries(tasks||{}).filter(([,t])=>t.date===dayStr3||t.day==di).sort(([,a],[,b])=>{       const aS=a.hours?a.hours.split('-')[0].trim():'00:00';       const bS=b.hours?b.hours.split('-')[0].trim():'00:00';       return aS.localeCompare(bS);     }).forEach(([tid,t])=>{
-      const tb=document.createElement('div');
-      tb.style.cssText='background:#fef9c3;border-right:3px solid #d97706;border-radius:6px;padding:.5rem .7rem;margin-bottom:.4rem;font-size:11px;';
-      const pendCount=(t.pendingVols||[]).length;
-      const approvedCount=(t.emps||[]).length;
-      const approvedNames=(t.emps||[]).map(id=>{const e=emps.find(x=>x.id===id);return e?e.name:'';}).filter(Boolean);
-      tb.innerHTML='<div style="font-weight:700;color:#713f12;display:flex;align-items:center;justify-content:space-between;">'+
-        '<span>📋 '+t.name+'</span>'+
-        '<span style="display:flex;gap:3px;">'+
-        (pendCount?'<span style="background:#fef9c3;border:1px solid #d97706;border-radius:4px;padding:1px 4px;cursor:pointer;" onclick="mTab(\'tasks\')">✋'+pendCount+'</span>':'')+'</span>'+
-        '</div>'+
-        (t.hours?'<div style="color:#888;">🕐 '+t.hours+'</div>':'')+
-        (approvedNames.length?'<div style="color:#166534;font-size:8px;">✔ '+approvedNames.join(', ')+'</div>':'');
-      col.appendChild(tb);
+    const sc2=window._lastSC||{};
+    const shEnds={morning:sc2.shMorningEnd||'15:00',evening:sc2.shEveningEnd||'23:00',night:sc2.shNightEnd||'07:00'};
+    function getTaskShift(t){
+      const te=t.hours?t.hours.split('-')[1]?.trim():'';
+      if(!te)return'morning';
+      if(te<='07:00'||te==='00:00')return'night';
+      if(te<='15:00')return'morning';
+      if(te<='23:00')return'evening';
+      return'night';
+    }
+    const dayTasks=Object.entries(tasks||{}).filter(([,t])=>t.date===dayStr3||t.day==di);
+    col.querySelectorAll('.sb').forEach(sb=>{
+      const shk=sb.classList.contains('sb-m')?'morning':sb.classList.contains('sb-e')?'evening':'night';
+      dayTasks.filter(([,t])=>getTaskShift(t)===shk).forEach(([tid,t])=>{
+        const tb=document.createElement('div');
+        tb.style.cssText='background:#fef9c3;border-right:3px solid #d97706;border-radius:6px;padding:.5rem .7rem;margin:.3rem 0;font-size:11px;';
+        const pendCount=(t.pendingVols||[]).length;
+        const approvedNames=(t.emps||[]).map(id=>{const e=emps.find(x=>x.id===id);return e?e.name:'';}).filter(Boolean);
+        tb.innerHTML='<div style="font-weight:700;color:#713f12;display:flex;align-items:center;justify-content:space-between;">'+
+          '<span>📋 '+t.name+'</span>'+
+          (pendCount?'<span style="background:#fef9c3;border:1px solid #d97706;border-radius:4px;padding:1px 4px;cursor:pointer;font-size:9px;" onclick="mTab(\'tasks\')">✋'+pendCount+'</span>':'')+
+          '</div>'+
+          (t.hours?'<div style="color:#888;font-size:10px;">🕐 '+t.hours+'</div>':'')+
+          (approvedNames.length?'<div style="color:#166534;font-size:10px;">✔ '+approvedNames.join(', ')+'</div>':'');
+        sb.appendChild(tb);
+      });
     });
     grid.appendChild(col);
   });
