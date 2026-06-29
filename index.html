@@ -1428,7 +1428,7 @@ window.autoAssign=async function(){
   });
    // Reach min shifts per emp
  let changed=true,iter=0;
-  while(changed&&iter<15){changed=false;iter++;
+  while(changed&&iter<15){changed=false;iter++;console.log('iter:',iter);
     emps.filter(e=>empCnt[e.id]<minShifts).forEach(emp=>{
       allSlots.forEach(({di,shk})=>{
         if(empCnt[emp.id]>=minShifts)return;
