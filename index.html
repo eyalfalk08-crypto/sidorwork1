@@ -1392,7 +1392,7 @@ async function loadShiftConstraints(){
   return sc;
 }
 window.autoAssign=async function(){
-  if(!confirm('שיבוץ אוטומטי ייצור סידור חדש לפי חסימות ואילוצים. להמשיך?'))return;
+  if(!confirm('שיבוץ אוטומטי ייצור סידור חדש לפי חסימות ואילוצים. להמשיך?'))return;   console.log('auto assign started');
   const w=wk(CW);sl(true);
   const emps=await fg('sched/config/employees')||DEF_EMPS;
   const blocks=await fg('sched/weeks/'+w+'/blocks')||{};
