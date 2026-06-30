@@ -1278,11 +1278,24 @@ async function rMgrSched(){
         '<button onclick="openShiftNote(\''+w+'\','+di+',\''+sh.k+'\')" style="'+volBtnStyle+'background:var(--prl);color:var(--pr);">📝</button>'+
         '</div>';
       if(shNote)inner+='<div class="note-badge" style="margin-bottom:2px;max-width:100%;">'+shNote+'</div>';
-      assigned.forEach(empId=>{
+     assigned.forEach(empId=>{
         const emp=emps.find(e=>e.id===empId);if(!emp)return;
         const isBlocked=blocks[empId]&&blocks[empId]['d'+di]&&blocks[empId]['d'+di][sh.k];
+        const shOrder=['morning','evening','night'];
+        const curShIdx=shOrder.indexOf(sh.k);
+        let isConsec=false;
+        SHF.forEach(otherSh=>{
+          if(otherSh.k===sh.k)return;
+          const otherIdx=shOrder.indexOf(otherSh.k);
+          const sameDayAdjacent=Math.abs(curShIdx-otherIdx)===1;
+          const nextDayMorningFromTonight=sh.k==='night'&&otherSh.k==='morning'&&di<6;
+          const prevNightToMorning=sh.k==='morning'&&otherSh.k==='night'&&di>0;
+          if(sameDayAdjacent&&(sched['d'+di]&&sched['d'+di][otherSh.k]||[]).includes(empId))isConsec=true;
+          if(nextDayMorningFromTonight&&(sched['d'+(di+1)]&&sched['d'+(di+1)][otherSh.k]||[]).includes(empId))isConsec=true;
+          if(prevNightToMorning&&(sched['d'+(di-1)]&&sched['d'+(di-1)][otherSh.k]||[]).includes(empId))isConsec=true;
+        });
         const en=empNotes[w]&&empNotes[w][di]&&empNotes[w][di][sh.k]&&empNotes[w][di][sh.k][empId];
-        inner+='<div class="se"><span style="color:'+(isBlocked?'#e53e3e':'#1e1b4b')+';flex:1;">'+(isBlocked?'⚠ ':'')+emp.name+'</span>'+
+        inner+='<div class="se"><span style="color:'+(isBlocked?'#e53e3e':'#1e1b4b')+';flex:1;">'+(isBlocked?'⚠ ':'')+(isConsec?'🔁 ':'')+emp.name+'</span>'+
           '<div style="display:flex;gap:2px;align-items:center;">'+
           '<button onclick="openEmpNote(\''+w+'\','+di+',\''+sh.k+'\',\''+empId+'\')" style="font-size:8px;background:var(--prl);color:var(--pr);border:none;border-radius:3px;padding:1px 3px;cursor:pointer;">📝</button>'+
           '<button class="rb" onclick="remEmp(\''+w+'\','+di+',\''+sh.k+'\',\''+empId+'\')">×</button>'+
