@@ -1519,8 +1519,10 @@ const allSlots=[];
     const {min,max}=mm(shk,di);
     const isFriShift=di===5&&(shk==='morning'||shk==='evening');
     let pool=avail(di,shk);
+  if(isFriShift){console.log('Friday',shk,'pool before:',pool.length,'min:',min);}
     if(isFriShift&&pool.length<min){
       pool=avail(di,shk,true);
+      console.log('Friday fallback pool:',pool.length);
     }
     sortByRotation(pool,di,shk).slice(0,min).forEach(emp=>{
       newS['d'+di][shk].push(emp.id);empCnt[emp.id]++;empShifts[emp.id].push(si(di,shk));
