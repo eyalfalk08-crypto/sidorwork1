@@ -1762,6 +1762,79 @@ window.clearDL=async function(){
   document.getElementById('dl-in').value='';rMgrBlocks();
 };
 
+// ===== ROTATIONS =====
+async function rMgrRotations(){
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  const w=wk(CW);
+  const blocks=await fg('sched/weeks/'+w+'/blocks')||{};
+  const rotKeys={fridayMorning:'fridayMorning',fridayEvening:'fridayEvening',dira:'dira'};
+  for(const rotKey of Object.keys(rotKeys)){
+    const rot=await fg('sched/config/rotations/'+rotKey)||{order:[],counts:{}};
+    const list=document.getElementById('rot-'+rotKey+'-list');
+    if(!list)continue;
+    list.innerHTML='';
+    if(!rot.order.length){
+      list.innerHTML='<div style="text-align:center;color:#888;padding:.8rem;font-size:12px;">אין עובדים בסבב זה</div>';
+      continue;
+    }
+    rot.order.forEach((empId,idx)=>{
+      const emp=emps.find(e=>e.id===empId);if(!emp)return;
+      const count=rot.counts[empId]||0;
+      // Check if blocked for relevant day (Friday=5)
+      const isFridayRot=rotKey!=='dira';
+      const isBlocked=isFridayRot&&blocks[empId]&&blocks[empId]['d5']&&blocks[empId]['d5'][rotKey==='fridayMorning'?'morning':'evening'];
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:.5rem .7rem;border-bottom:1px solid #f0f0f0;font-size:13px;';
+      row.innerHTML='<span style="display:flex;align-items:center;gap:8px;">'+
+        '<span style="background:var(--prl);color:var(--pr);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">'+(idx+1)+'</span>'+
+        emp.name+
+        (isBlocked?' <span style="color:#dc2626;font-size:10px;font-weight:700;">חסום</span>':'')+
+        '</span>'+
+        '<span style="display:flex;align-items:center;gap:6px;">'+
+        '<span style="background:var(--prll);color:var(--prd);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;">'+count+'</span>'+
+        '<button onclick="moveRotEmp(\''+rotKey+'\',\''+empId+'\',-1)" style="background:none;border:none;cursor:pointer;font-size:13px;">↑</button>'+
+        '<button onclick="moveRotEmp(\''+rotKey+'\',\''+empId+'\',1)" style="background:none;border:none;cursor:pointer;font-size:13px;">↓</button>'+
+        '<button onclick="removeRotEmp(\''+rotKey+'\',\''+empId+'\')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:13px;">×</button>'+
+        '</span>';
+      list.appendChild(row);
+    });
+  }
+}
+window.addRotEmp=async function(rotKey){
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  const rot=await fg('sched/config/rotations/'+rotKey)||{order:[],counts:{}};
+  const available=emps.filter(e=>!rot.order.includes(e.id));
+  if(!available.length){alert('כל העובדים כבר בסבב');return;}
+  const names=available.map((e,i)=>(i+1)+'. '+e.name).join('\n');
+  const choice=prompt('בחר מספר עובד להוספה:\n'+names);
+  if(!choice)return;
+  const idx=parseInt(choice)-1;
+  if(idx<0||idx>=available.length)return;
+  const emp=available[idx];
+  rot.order.push(emp.id);
+  if(!rot.counts)rot.counts={};
+  rot.counts[emp.id]=0;
+  sl(true);await fs('sched/config/rotations/'+rotKey,rot);sl(false);
+  rMgrRotations();
+};
+window.removeRotEmp=async function(rotKey,empId){
+  if(!confirm('להסיר עובד מהסבב?'))return;
+  const rot=await fg('sched/config/rotations/'+rotKey)||{order:[],counts:{}};
+  rot.order=rot.order.filter(id=>id!==empId);
+  delete rot.counts[empId];
+  sl(true);await fs('sched/config/rotations/'+rotKey,rot);sl(false);
+  rMgrRotations();
+};
+window.moveRotEmp=async function(rotKey,empId,dir){
+  const rot=await fg('sched/config/rotations/'+rotKey)||{order:[],counts:{}};
+  const idx=rot.order.indexOf(empId);
+  const newIdx=idx+dir;
+  if(newIdx<0||newIdx>=rot.order.length)return;
+  [rot.order[idx],rot.order[newIdx]]=[rot.order[newIdx],rot.order[idx]];
+  sl(true);await fs('sched/config/rotations/'+rotKey,rot);sl(false);
+  rMgrRotations();
+};
+
 // ===== TASKS =====
 async function rMgrTasks(){
   const w=wk(CW);
