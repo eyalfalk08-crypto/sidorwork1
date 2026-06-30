@@ -884,6 +884,16 @@ async function rEmpBlocks(){
   if(!_bs)_bs=await fg('sched/config/blockSettings')||DEF_BS;
   // Check if schedule is published - if so, lock blocks
   const pub=await fg('sched/weeks/'+w+'/published');
+  const sched0=await fg('sched/weeks/'+w+'/schedule');
+  const hasSchedule=sched0&&Object.keys(sched0).length>0;
+  if(!pub&&hasSchedule){
+    // Past published week - show read-only schedule instead of blocks
+    showPastScheduleReadonly(w,dates);
+    return;
+  }
+  document.getElementById('eb-grid').style.display='';
+  document.querySelector('#v-eblocks .fg').style.display='';
+  document.querySelector('#v-eblocks .bp').style.display='';
   const dlData=await fg('sched/weeks/'+w+'/deadline')||{};
   const now=new Date(),past=pub||(dlData.time&&new Date(dlData.time)<now);
   const badge=document.getElementById('dl-badge'),warn=document.getElementById('dl-warn');
