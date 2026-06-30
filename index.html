@@ -1763,9 +1763,8 @@ window.clearDL=async function(){
   document.getElementById('dl-in').value='';rMgrBlocks();
 };
 
-// ===== ROTATIONS DISABLED ===== async function rMgrRotations(){console.log('rotations disabled');} window.addRotEmp=function(){}; window.confirmAddRotEmp=function(){}; window.removeRotEmp=function(){}; window.moveRotEmp=function(){}; 
-async function rMgrRotations(){
-  const emps=await fg('sched/config/employees')||DEF_EMPS;
+// ===== ROTATIONS =====
+async function rMgrRotations(){ const emps=await fg('sched/config/employees')||DEF_EMPS;
   const w=wk(CW);
   const blocks=await fg('sched/weeks/'+w+'/blocks')||{};
   const rotKeys={fridayMorning:'fridayMorning',fridayEvening:'fridayEvening',dira:'dira'};
