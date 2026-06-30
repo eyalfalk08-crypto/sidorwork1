@@ -1456,7 +1456,7 @@ const allSlots=[];
     const {min,max}=mm(shk,di);
     sortByRotation(avail(di,shk),di,shk).slice(0,min).forEach(emp=>{
       newS['d'+di][shk].push(emp.id);empCnt[emp.id]++;empShifts[emp.id].push(si(di,shk));
-      if(di===5&&shk==='morning')updateRotation('fridayMorning',emp.id);
+      
       if(di===5&&shk==='evening')updateRotation('fridayEvening',emp.id);
     });
   });
@@ -1471,7 +1471,7 @@ const allSlots=[];
         if(blocks[emp.id]&&blocks[emp.id]['d'+di]&&blocks[emp.id]['d'+di][shk])return;
         if(noConsec&&empShifts[emp.id].some(s=>Math.abs(si(di,shk)-s)===1))return;
         if(newS['d'+di][shk].includes(emp.id))return;
-        newS['d'+di][shk].push(emp.id);empCnt[emp.id]++;empShifts[emp.id].push(si(di,shk));changed=true;         if(di===5&&shk==='morning')updateRotation('fridayMorning',emp.id);         if(di===5&&shk==='evening')updateRotation('fridayEvening',emp.id);
+        newS['d'+di][shk].push(emp.id);empCnt[emp.id]++;empShifts[emp.id].push(si(di,shk));changed=true;                  if(di===5&&shk==='evening')updateRotation('fridayEvening',emp.id);
       });
     });
   }
