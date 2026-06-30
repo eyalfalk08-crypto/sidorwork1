@@ -1800,21 +1800,30 @@ async function rMgrRotations(){
     });
   }
 }
+let _pendRot=null;
 window.addRotEmp=async function(rotKey){
   const emps=await fg('sched/config/employees')||DEF_EMPS;
   const rot=await fg('sched/config/rotations/'+rotKey)||{order:[],counts:{}};
   const available=emps.filter(e=>!rot.order.includes(e.id));
   if(!available.length){alert('כל העובדים כבר בסבב');return;}
-  const names=available.map((e,i)=>(i+1)+'. '+e.name).join('\n');
-  const choice=prompt('בחר מספר עובד להוספה:\n'+names);
-  if(!choice)return;
-  const idx=parseInt(choice)-1;
-  if(idx<0||idx>=available.length)return;
-  const emp=available[idx];
-  rot.order.push(emp.id);
+  _pendRot=rotKey;
+  const sel=document.getElementById('mo-rotesel');sel.innerHTML='';
+  available.forEach(e=>{
+    const o=document.createElement('option');o.value=e.id;o.textContent=e.name;
+    sel.appendChild(o);
+  });
+  document.getElementById('mo-addrotemp').classList.add('op');
+};
+window.confirmAddRotEmp=async function(){
+  if(!_pendRot)return;
+  const empId=document.getElementById('mo-rotesel').value;
+  if(!empId)return;
+  const rot=await fg('sched/config/rotations/'+_pendRot)||{order:[],counts:{}};
+  rot.order.push(empId);
   if(!rot.counts)rot.counts={};
-  rot.counts[emp.id]=0;
-  sl(true);await fs('sched/config/rotations/'+rotKey,rot);sl(false);
+  rot.counts[empId]=0;
+  sl(true);await fs('sched/config/rotations/'+_pendRot,rot);sl(false);
+  cm('mo-addrotemp');
   rMgrRotations();
 };
 window.removeRotEmp=async function(rotKey,empId){
