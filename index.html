@@ -1763,7 +1763,7 @@ window.clearDL=async function(){
   document.getElementById('dl-in').value='';rMgrBlocks();
 };
 
-// ===== ROTATIONS =====
+// ===== ROTATIONS DISABLED ===== async function rMgrRotations(){console.log('rotations disabled');} window.addRotEmp=function(){}; window.confirmAddRotEmp=function(){}; window.removeRotEmp=function(){}; window.moveRotEmp=function(){}; /*
 async function rMgrRotations(){
   const emps=await fg('sched/config/employees')||DEF_EMPS;
   const w=wk(CW);
@@ -1845,6 +1845,7 @@ window.moveRotEmp=async function(rotKey,empId,dir){
   rMgrRotations();
 };
 
+*/
 // ===== TASKS =====
 async function rMgrTasks(){
   const w=wk(CW);
