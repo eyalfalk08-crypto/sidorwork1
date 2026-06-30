@@ -2784,7 +2784,31 @@ async function checkReminder(){
   await fs('sched/weeks/'+w+'/reminderSent',Date.now());
   await sendNotifToAll(w,'deadline','⏰ תזכורת: '+cfg.text,'נותרו '+Math.round(diffHours)+' שעות עד הדד-ליין');
 }
-window.saveAutoDeadline=async function(){   const enabled=document.getElementById('adl-enabled').checked;   const day=parseInt(document.getElementById('adl-day').value);   const time=document.getElementById('adl-time').value;   sl(true);   await fs('sched/config/autoDeadline',{enabled,day,time});   sl(false);   ssm('sm-adl'); }; async function loadAutoDeadline(){   const cfg=await fg('sched/config/autoDeadline')||{};   const el=document.getElementById('adl-enabled');   const dl=document.getElementById('adl-day');   const tl=document.getElementById('adl-time');   if(el)el.checked=cfg.enabled||false;   if(dl)dl.value=cfg.day||0;   if(tl)tl.value=cfg.time||'10:00'; } window.resetAllData=async function(){
+window.saveAutoDeadline=async function(){   const enabled=document.getElementById('adl-enabled').checked;   const day=parseInt(document.getElementById('adl-day').value);   const time=document.getElementById('adl-time').value;   sl(true);   await fs('sched/config/autoDeadline',{enabled,day,time});   sl(false);   ssm('sm-adl'); }; async function loadAutoDeadline(){   const cfg=await fg('sched/config/autoDeadline')||{};   const el=document.getElementById('adl-enabled');   const dl=document.getElementById('adl-day');   const tl=document.getElementById('adl-time');   if(el)el.checked=cfg.enabled||false;   if(dl)dl.value=cfg.day||0;   if(tl)tl.value=cfg.time||'10:00'; } window.bulkBlockShift=async function(){
+  const day=parseInt(document.getElementById('bulk-block-day').value);
+  const shk=document.getElementById('bulk-block-shift').value;
+  if(!confirm('לחסום את כל העובדים למשמרת זו?'))return;
+  const w=wk(CW);
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  sl(true);
+  const updates={};
+  emps.forEach(e=>{updates['sched/weeks/'+w+'/blocks/'+e.id+'/d'+day+'/'+shk]=true;});
+  await db.ref().update(updates);
+  sl(false);ssm('sm-bulk');rMgrBlocks();
+};
+window.bulkUnblockShift=async function(){
+  const day=parseInt(document.getElementById('bulk-block-day').value);
+  const shk=document.getElementById('bulk-block-shift').value;
+  if(!confirm('לבטל חסימה לכל העובדים למשמרת זו?'))return;
+  const w=wk(CW);
+  const emps=await fg('sched/config/employees')||DEF_EMPS;
+  sl(true);
+  const updates={};
+  emps.forEach(e=>{updates['sched/weeks/'+w+'/blocks/'+e.id+'/d'+day+'/'+shk]=false;});
+  await db.ref().update(updates);
+  sl(false);ssm('sm-bulk');rMgrBlocks();
+};
+window.resetAllData=async function(){
   if(!confirm('⚠️ מחיקת כל הנתונים (חסימות, סידורים, התנדבויות, החלפות, התראות)\nאי אפשר לבטל! להמשיך?'))return;
   if(!confirm('אתה בטוח לגמרי?'))return;
   sl(true);
