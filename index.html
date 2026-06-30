@@ -1533,7 +1533,7 @@ const allSlots=[];
       if(di===5&&shk==='morning'){await updateRotation('fridayMorning',emp.id);rotFM2.counts[emp.id]=(rotFM2.counts[emp.id]||0)+1;}
       if(di===5&&shk==='evening'){await updateRotation('fridayEvening',emp.id);rotFE2.counts[emp.id]=(rotFE2.counts[emp.id]||0)+1;}
     }
-  });
+  }
    // Reach min shifts per emp
  let changed=true,iter=0;
   while(changed&&iter<15){changed=false;iter++;console.log('iter:',iter);
