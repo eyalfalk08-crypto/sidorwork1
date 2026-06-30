@@ -1456,8 +1456,6 @@ const allSlots=[];
     const {min,max}=mm(shk,di);
    sortByRotation(avail(di,shk),di,shk).slice(0,min).forEach(emp=>{
       newS['d'+di][shk].push(emp.id);empCnt[emp.id]++;empShifts[emp.id].push(si(di,shk));
-      if(di===5&&shk==='morning')updateRotation('fridayMorning',emp.id);
-      if(di===5&&shk==='evening')updateRotation('fridayEvening',emp.id);
     });
   });
    // Reach min shifts per emp
@@ -1597,6 +1595,19 @@ window.publishToggle=async function(){
           const newList=[...cur,...pendingIds.filter(id=>!cur.includes(id))];
           await fs('sched/weeks/'+w+'/schedule/d'+di+'/'+shk,newList);
         }
+      }
+    }
+    // Update rotation counts for Friday morning/evening shifts based on FINAL schedule
+    const finalSched=await fg('sched/weeks/'+w+'/schedule')||{};
+    const fridayMorningEmps=(finalSched['d5']&&finalSched['d5']['morning'])||[];
+    const fridayEveningEmps=(finalSched['d5']&&finalSched['d5']['evening'])||[];
+    for(const empId of fridayMorningEmps){await updateRotation('fridayMorning',empId);}
+    for(const empId of fridayEveningEmps){await updateRotation('fridayEvening',empId);}
+    // Update rotation for dira tasks
+    const finalTasks=await fg('sched/weeks/'+w+'/tasks')||{};
+    for(const [,task] of Object.entries(finalTasks)){
+      if(task.name&&task.name.trim()==='דירה'){
+        for(const empId of (task.emps||[])){await updateRotation('dira',empId);}
       }
     }
     await fs('sched/weeks/'+w+'/published',true);
