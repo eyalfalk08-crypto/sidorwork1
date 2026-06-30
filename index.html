@@ -1491,9 +1491,9 @@ window.autoAssign=async function(){
   const empShifts={};emps.forEach(e=>{empShifts[e.id]=[];});
   function si(di,shk){return di*3+SHF.findIndex(s=>s.k===shk);}
   function mm(shk,di){const isWE=di>=5;if(isWE){if(shk==='morning')return{min:sc.weMinMorning??1,max:sc.weMaxMorning??4};if(shk==='evening')return{min:sc.weMinEvening??1,max:sc.weMaxEvening??4};return{min:sc.weMinNight??1,max:sc.weMaxNight??3};}if(shk==='morning')return{min:minM,max:maxM};if(shk==='evening')return{min:minE,max:maxE};return{min:minN,max:maxN};}
-  function avail(di,shk){
+  function avail(di,shk,ignoreBlock){
     return emps.filter(e=>{
-      if(blocks[e.id]&&blocks[e.id]['d'+di]&&blocks[e.id]['d'+di][shk])return false;
+      if(!ignoreBlock&&blocks[e.id]&&blocks[e.id]['d'+di]&&blocks[e.id]['d'+di][shk])return false;
       if(empCnt[e.id]>=maxShifts)return false;
      if(noConsec&&empShifts[e.id].some(s=>Math.abs(si(di,shk)-s)===1))return false;
       if(newS['d'+di][shk].includes(e.id))return false;
@@ -1502,11 +1502,30 @@ window.autoAssign=async function(){
   }
 const allSlots=[];
   for(let di=0;di<7;di++)SHF.forEach(sh=>allSlots.push({di,shk:sh.k}));
-  function sortByRotation(list,di,shk){return list;}
+  const rotFM2=await fg('sched/config/rotations/fridayMorning')||{order:[],counts:{}};
+  const rotFE2=await fg('sched/config/rotations/fridayEvening')||{order:[],counts:{}};
+  function sortByRotation(list,di,shk){
+    const isFM=di===5&&shk==='morning',isFE=di===5&&shk==='evening';
+    const rot=isFM?rotFM2:isFE?rotFE2:null;
+    if(!rot||!rot.order.length)return list;
+    return list.slice().sort((a,b)=>{
+      const aIdx=rot.order.indexOf(a.id),bIdx=rot.order.indexOf(b.id);
+      const aC=aIdx>=0?(rot.counts[a.id]||0):999,bC=bIdx>=0?(rot.counts[b.id]||0):999;
+      if(aC!==bC)return aC-bC;
+      return (aIdx<0?999:aIdx)-(bIdx<0?999:bIdx);
+    });
+  }
   allSlots.forEach(({di,shk})=>{
     const {min,max}=mm(shk,di);
-   sortByRotation(avail(di,shk),di,shk).slice(0,min).forEach(emp=>{
+    const isFriShift=di===5&&(shk==='morning'||shk==='evening');
+    let pool=avail(di,shk);
+    if(isFriShift&&pool.length<min){
+      pool=avail(di,shk,true);
+    }
+    sortByRotation(pool,di,shk).slice(0,min).forEach(emp=>{
       newS['d'+di][shk].push(emp.id);empCnt[emp.id]++;empShifts[emp.id].push(si(di,shk));
+      if(di===5&&shk==='morning')updateRotation('fridayMorning',emp.id);
+      if(di===5&&shk==='evening')updateRotation('fridayEvening',emp.id);
     });
   });
    // Reach min shifts per emp
