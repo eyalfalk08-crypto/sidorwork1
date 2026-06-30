@@ -2264,19 +2264,54 @@ window.openSwapMgr=async function(w){
   });
   document.getElementById('mo-swap-mgr').classList.add('op');
 };
-window.approveSwap=async function(w,sid,fromId,toId,di,shk){
-  sl(true);
-  // Swap in schedule
-  const cur=await fg('sched/weeks/'+w+'/schedule/d'+di+'/'+shk)||[];
-  const updated=cur.map(id=>id===fromId?toId:id===toId?fromId:id);
-  await fs('sched/weeks/'+w+'/schedule/d'+di+'/'+shk,updated);
-  await fs('sched/weeks/'+w+'/swaps/'+sid+'/status','approved');
-  // Also update the approved time
-  await fs('sched/weeks/'+w+'/swaps/'+sid+'/approvedAt',Date.now());
-  const sh=SHF.find(s=>s.k===shk);
-  await sendNotifTo(fromId,'swap_ok','✔ החלפה אושרה','המנהל אישר את ההחלפה שלך — '+sh.l+' '+DAYS[di],w);
-  await sendNotifTo(toId,'swap_ok','✔ החלפה אושרה','אתה מוחלף במשמרת '+sh.l+' '+DAYS[di],w);
-  sl(false);rMgrSwaps();rMgrSched();
+let _pendSwapAction=null;
+window.approveSwap=function(w,sid,fromId,toId,di,shk){
+  _pendSwapAction={action:'approve',w,sid,fromId,toId,di,shk};
+  document.getElementById('swap-action-title').textContent='אישור החלפה';
+  document.getElementById('swap-action-note').value='';
+  const btn=document.getElementById('swap-action-confirm-btn');
+  btn.textContent='✔ אשר החלפה';
+  btn.style.background='linear-gradient(135deg,var(--pr),var(--prm))';
+  btn.onclick=confirmSwapAction;
+  document.getElementById('mo-swap-action').classList.add('op');
+};
+window.rejectSwap=function(w,sid,fromId,toId){
+  _pendSwapAction={action:'reject',w,sid,fromId,toId};
+  document.getElementById('swap-action-title').textContent='דחיית החלפה';
+  document.getElementById('swap-action-note').value='';
+  const btn=document.getElementById('swap-action-confirm-btn');
+  btn.textContent='✕ דחה החלפה';
+  btn.style.background='#dc2626';
+  btn.onclick=confirmSwapAction;
+  document.getElementById('mo-swap-action').classList.add('op');
+};
+window.confirmSwapAction=async function(){
+  if(!_pendSwapAction)return;
+  const note=document.getElementById('swap-action-note').value.trim();
+  const noteStr=note?' 📝 '+note:'';
+  if(_pendSwapAction.action==='approve'){
+    const {w,sid,fromId,toId,di,shk}=_pendSwapAction;
+    sl(true);
+    const cur=await fg('sched/weeks/'+w+'/schedule/d'+di+'/'+shk)||[];
+    const updated=cur.map(id=>id===fromId?toId:id===toId?fromId:id);
+    await fs('sched/weeks/'+w+'/schedule/d'+di+'/'+shk,updated);
+    await fs('sched/weeks/'+w+'/swaps/'+sid+'/status','approved');
+    await fs('sched/weeks/'+w+'/swaps/'+sid+'/approvedAt',Date.now());
+    if(note)await fs('sched/weeks/'+w+'/swaps/'+sid+'/mgrNote',note);
+    const sh=SHF.find(s=>s.k===shk);
+    await sendNotifTo(fromId,'swap_ok','✔ החלפה אושרה','המנהל אישר את ההחלפה שלך — '+sh.l+' '+DAYS[di]+noteStr,w);
+    await sendNotifTo(toId,'swap_ok','✔ החלפה אושרה','אתה מוחלף במשמרת '+sh.l+' '+DAYS[di]+noteStr,w);
+    sl(false);rMgrSwaps();rMgrSched();
+  }else{
+    const {w,sid,fromId}=_pendSwapAction;
+    sl(true);
+    await fs('sched/weeks/'+w+'/swaps/'+sid+'/status','rejected');
+    if(note)await fs('sched/weeks/'+w+'/swaps/'+sid+'/mgrNote',note);
+    await sendNotifTo(fromId,'swap_rej','✕ החלפה נדחתה','המנהל דחה את בקשת ההחלפה שלך'+noteStr,w);
+    sl(false);rMgrSwaps();rMgrSched();
+  }
+  cm('mo-swap-action');
+  _pendSwapAction=null;
 };
 window.rejectSwap=async function(w,sid,fromId,toId){
   sl(true);
