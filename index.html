@@ -1338,11 +1338,16 @@ window.confirmAddEmp=async function(){
   sl(true);
   await fs('sched/weeks/'+w+'/schedule/d'+di+'/'+shk,[...cur,empId]);
   if(note)await fs('sched/weeks/'+w+'/empNotes/'+w+'/'+di+'/'+shk+'/'+empId,note);
+  if(di===5&&shk==='morning')await updateRotation('fridayMorning',empId);
+  if(di===5&&shk==='evening')await updateRotation('fridayEvening',empId);
   sl(false);cm('mo-addemp');rMgrSched();
 };
 window.remEmp=async function(w,di,shk,empId){
   const cur=await fg('sched/weeks/'+w+'/schedule/d'+di+'/'+shk)||[];
-  sl(true);await fs('sched/weeks/'+w+'/schedule/d'+di+'/'+shk,cur.filter(e=>e!==empId));sl(false);rMgrSched();
+  sl(true);await fs('sched/weeks/'+w+'/schedule/d'+di+'/'+shk,cur.filter(e=>e!==empId));
+  if(di===5&&shk==='morning')await decrementRotation('fridayMorning',empId);
+  if(di===5&&shk==='evening')await decrementRotation('fridayEvening',empId);
+  sl(false);rMgrSched();
 };
 
 let _pendShiftNote=null;
@@ -2588,11 +2593,15 @@ window.rejectTaskVol=async function(w,tid,empId){
 window.addEmpTask=async function(w,tid){
   const sel=document.getElementById('tsel-'+tid);if(!sel||!sel.value)return;
   const task=await fg('sched/weeks/'+w+'/tasks/'+tid)||{};
-  sl(true);await fs('sched/weeks/'+w+'/tasks/'+tid+'/emps',[...(task.emps||[]),sel.value]);sl(false);rMgrTasks();
+  sl(true);await fs('sched/weeks/'+w+'/tasks/'+tid+'/emps',[...(task.emps||[]),sel.value]);
+  if(task.name&&task.name.trim()==='דירה')await updateRotation('dira',sel.value);
+  sl(false);rMgrTasks();
 };
 window.remEmpTask=async function(w,tid,empId){
   const task=await fg('sched/weeks/'+w+'/tasks/'+tid)||{};
-  sl(true);await fs('sched/weeks/'+w+'/tasks/'+tid+'/emps',(task.emps||[]).filter(e=>e!==empId));sl(false);rMgrTasks();
+  sl(true);await fs('sched/weeks/'+w+'/tasks/'+tid+'/emps',(task.emps||[]).filter(e=>e!==empId));
+  if(task.name&&task.name.trim()==='דירה')await decrementRotation('dira',empId);
+  sl(false);rMgrTasks();
 };
 
 // ===== SETTINGS =====
