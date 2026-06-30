@@ -2313,11 +2313,6 @@ window.confirmSwapAction=async function(){
   cm('mo-swap-action');
   _pendSwapAction=null;
 };
-window.rejectSwap=async function(w,sid,fromId,toId){
-  sl(true);
-  await fs('sched/weeks/'+w+'/swaps/'+sid+'/status','rejected');
-  await sendNotifTo(fromId,'swap_rej','✕ החלפה נדחתה','המנהל דחה את בקשת ההחלפה שלך',w);
-  sl(false);rMgrSwaps();rMgrSched();
 };
 
 // ===== SWAP VIEWS =====
