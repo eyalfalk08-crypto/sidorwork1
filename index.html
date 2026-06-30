@@ -1451,29 +1451,7 @@ window.autoAssign=async function(){
   }
 const allSlots=[];
   for(let di=0;di<7;di++)SHF.forEach(sh=>allSlots.push({di,shk:sh.k}));
-  const rotFM=await fg('sched/config/rotations/fridayMorning')||{order:[],counts:{}};
-  const rotFE=await fg('sched/config/rotations/fridayEvening')||{order:[],counts:{}};
-  function sortByRotation(list,di,shk){
-    const isFridayMorning=di===5&&shk==='morning';
-    const isFridayEvening=di===5&&shk==='evening';
-    if(isFridayMorning&&rotFM.order.length){
-      return list.slice().sort((a,b)=>{
-        const aIdx=rotFM.order.indexOf(a.id),bIdx=rotFM.order.indexOf(b.id);
-        const aC=aIdx>=0?(rotFM.counts[a.id]||0):999,bC=bIdx>=0?(rotFM.counts[b.id]||0):999;
-        if(aC!==bC)return aC-bC;
-        return (aIdx<0?999:aIdx)-(bIdx<0?999:bIdx);
-      });
-    }
-    if(isFridayEvening&&rotFE.order.length){
-      return list.slice().sort((a,b)=>{
-        const aIdx=rotFE.order.indexOf(a.id),bIdx=rotFE.order.indexOf(b.id);
-        const aC=aIdx>=0?(rotFE.counts[a.id]||0):999,bC=bIdx>=0?(rotFE.counts[b.id]||0):999;
-        if(aC!==bC)return aC-bC;
-        return (aIdx<0?999:aIdx)-(bIdx<0?999:bIdx);
-      });
-    }
-    return list;
-  }
+  function sortByRotation(list,di,shk){return list;}
   allSlots.forEach(({di,shk})=>{
     const {min,max}=mm(shk,di);
     sortByRotation(avail(di,shk),di,shk).slice(0,min).forEach(emp=>{
