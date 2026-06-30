@@ -2353,9 +2353,9 @@ case 'waiting_employee':
         statusDesc='<div style="font-size:12px;color:#1e40af;background:#dbeafe;border-radius:8px;padding:6px 12px;margin-top:.5rem;">'+
           (other?other.name:'?')+' אישר — מחכה לאישור סופי מהמנהל</div>';
         break;
-      case 'approved':
+     case 'approved':
         statusText='✔ אושר';statusBg='#d1fae5';statusColor='#065f46';
-        statusDesc='<div style="font-size:12px;color:#065f46;background:#d1fae5;border-radius:8px;padding:6px 12px;margin-top:.5rem;">✔ ההחלפה מאושרת ומופיעה בסידור הסופי</div>';
+        statusDesc='<div style="font-size:12px;color:#065f46;background:#d1fae5;border-radius:8px;padding:6px 12px;margin-top:.5rem;">✔ ההחלפה מאושרת ומופיעה בסידור הסופי'+(swap.mgrNote?'<br>📝 '+swap.mgrNote:'')+'</div>';
         break;
       case 'rejected_by_employee':
         statusText='✕ נדחה ע"י '+( other?other.name:'?');statusBg='#fee2e2';statusColor='#991b1b';
