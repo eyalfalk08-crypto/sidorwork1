@@ -2700,7 +2700,8 @@ console.log('FILE PARSED OK'); async function checkAutoDeadline(){   const cfg=a
   if(document.getElementById('a-wm'))document.getElementById('a-wm').checked=_bs.allowWeekendMorning!==false;
   if(document.getElementById('a-we'))document.getElementById('a-we').checked=_bs.allowWeekendEvening!==false;
   if(document.getElementById('a-wn'))document.getElementById('a-wn').checked=_bs.allowWeekendNight!==false;
- await loadShiftConstraints();
+ await new Promise(r=>setTimeout(r,100));
+  await loadShiftConstraints();
   await loadAutoDeadline();
   await loadReminder();
   _wemps=[...emps];
