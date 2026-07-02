@@ -945,9 +945,13 @@ async function rEmpBlocks(){
       const blocked=myB['d'+di]&&myB['d'+di][sh.k];
       const cell=document.createElement('div');
       if(!allowed||past){
-        cell.className='sc sc-lk';
-        cell.textContent=pub&&allowed?'🔒':allowed?sh.l:'—';
-        cell.title=pub?'הסידור פורסם':'';
+       const isBlockedCell=myB['d'+di]&&myB['d'+di][sh.k];
+        cell.className='sc '+(isBlockedCell?'sc-bl':'sc-lk');
+        cell.style.opacity=isBlockedCell?'1':'0.5';
+        cell.style.cursor='not-allowed';
+        cell.style.filter=isBlockedCell?'brightness(0.7)':'none';
+        cell.textContent=isBlockedCell?'✕':allowed?'🔒':'—';
+        cell.title=pub?'הסידור פורסם — לא ניתן לשנות':'עבר הדד-ליין — לא ניתן לשנות';
       }
       else{
         cell.className='sc '+(blocked?'sc-bl':sh.cls);cell.textContent=blocked?'✕':sh.l;
