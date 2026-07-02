@@ -870,11 +870,12 @@ window.mTab=function(tab){
   ['msched','mblocks','mtasks','mswaps','mrotations','msettings'].forEach(v=>{
     const el=document.getElementById('v-'+v);if(el)el.classList.toggle('active','m'+tab===v);
   });
-  if(tab==='sched')rMgrSched();
+ if(tab==='sched')rMgrSched();
   else if(tab==='blocks')rMgrBlocks();
   else if(tab==='tasks')rMgrTasks();
   else if(tab==='swaps')rMgrSwaps();
-  else if(tab==='rotations')rMgrRotations();   else rMgrSettings();
+  else if(tab==='rotations')rMgrRotations();
+  else setTimeout(()=>rMgrSettings(),50);
 };
 
 // ===== EMP BLOCKS =====
