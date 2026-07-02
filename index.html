@@ -791,8 +791,16 @@ async function enterEmp(){
   ['v-msched','v-mblocks','v-mtasks','v-mswaps','v-msettings'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.classList.remove('active');
   });
-  eTab('blocks');
+ eTab('blocks');
   startNotifListener();
+  // Listen to published status - realtime update
+  db.ref('sched/weeks/'+wk(CW)+'/published').on('value',snap=>{
+    const currentTab=document.querySelector('#etabs .tab.active');
+    if(currentTab){
+      const tabName=currentTab.getAttribute('onclick').match(/'(\w+)'/);
+      if(tabName&&tabName[1]==='blocks')rEmpBlocks();
+    }
+  });
   // Update swap badge - realtime
 db.ref('sched/weeks/'+wk(CW)+'/swaps').on('value',snap=>{
     const swaps=snap.val()||{};
